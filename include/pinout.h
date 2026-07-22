@@ -4,8 +4,6 @@
 // =====================================================================
 // PINOUT DO ROBO ROMENIA (ESP32-S3-WROOM-1-N16R8)
 //
-// Fonte: codigo_romenia/image.png (schematic) + confirmacoes do Ricardo
-// (ver codigo_romenia/PLANEJAMENTO.md, secao 4, para o historico completo).
 //
 // Pinos marcados "TODO" ainda NAO foram confirmados no schematic real -
 // a leitura da imagem ja teve pelo menos 1 erro (secao 4.5 do
