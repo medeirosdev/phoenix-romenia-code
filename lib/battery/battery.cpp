@@ -3,10 +3,10 @@
 
 // Valor inicial otimista (bateria "alta" pro numero de celulas configurado),
 // so ate a primeira leitura real acontecer.
-float voltage = BATTERY_CELL_COUNT * VOLTS_PER_CELL_HIGH;
-Battery_Status battery_status = BATTERY_HIGH;
+static float voltage = BATTERY_CELL_COUNT * VOLTS_PER_CELL_HIGH;
+static Battery_Status battery_status = BATTERY_HIGH;
 
-unsigned long battery_low_since = 0; // 0 = nao esta em bateria fraca no momento
+static unsigned long battery_low_since = 0; // 0 = nao esta em bateria fraca no momento
 
 void battery_init() {
     pinMode(BATTERY_LEVEL_PIN, INPUT);

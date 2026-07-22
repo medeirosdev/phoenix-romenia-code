@@ -13,7 +13,9 @@
 // antes de confiar nesses valores em corrida.
 void set_fan_voltage(float voltage_to_fan) {
     voltage_to_fan = constrain(voltage_to_fan, 0, MAX_FAN_VOLTAGE);
-    float current_battery_voltage = get_battery_voltage();
+    // Piso de seguranca: mesma razao do motors.cpp - evita divisao por
+    // quase-zero se a bateria estiver desconectada/lendo errado.
+    float current_battery_voltage = max(get_battery_voltage(), (float)MIN_BATTERY_VOLTAGE_FOR_PWM);
     int16_t pwm_to_fan = round(255 * voltage_to_fan / current_battery_voltage);
     pwm_to_fan = constrain(pwm_to_fan, 0, 255);
 
@@ -22,7 +24,11 @@ void set_fan_voltage(float voltage_to_fan) {
 
 void fan_init() {
     pinMode(FAN_MOTOR_PIN, OUTPUT);
-    analogWriteFrequency(50000);
+    // Essa versao do core ESP32 so tem analogWriteFrequency()/
+    // analogWriteResolution() GLOBAIS (sem variante por pino) - ver
+    // comentario completo em motors.cpp (motors_init). Por isso o valor
+    // aqui PRECISA continuar igual ao usado em motors.cpp (50 kHz, 8 bits).
+    analogWriteFrequency(FAN_PWM_FREQUENCY_HZ);
     analogWriteResolution(8);
 
     set_fan_voltage(0);

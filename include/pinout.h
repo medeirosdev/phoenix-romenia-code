@@ -25,9 +25,12 @@
 // LEDS (FastLED) - dois grupos INDEPENDENTES, cada um com seu proprio pino
 // de dados (nao estao em serie). Nenhum dos dois pinos esta confirmado
 // ainda - ver PLANEJAMENTO.md secao 4.2/4.5. Valor 99 = pino invalido de
-// proposito (nenhum GPIO real do ESP32-S3 chega perto disso), pra falhar
-// alto se alguem tentar usar antes de confirmar o pino de verdade -
-// NAO e um numero de GPIO, e um sinalizador de "ainda nao sei".
+// proposito (nenhum GPIO real do ESP32-S3 chega perto disso) - NAO e um
+// numero de GPIO, e um sinalizador de "ainda nao sei". ATENCAO: isso NAO
+// trava/crasha sozinho se usado por engano - pinMode()/analogWrite() com
+// pino fora da faixa so falham em silencio (log interno facil de nao
+// notar). Antes de escrever a lib led, trocar esse placeholder pelo pino
+// real primeiro.
 #define LED_PRINCIPAL_PIN       99  // TODO: descobrir o pino real (3 LEDs, grupo "principal")
 #define LED_FRONTAL_PIN         99  // TODO: descobrir o pino real (2 LEDs, grupo "frontal")
 #define NUMBER_OF_LEDS_PRINCIPAL 3

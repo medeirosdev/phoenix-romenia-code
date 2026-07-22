@@ -12,7 +12,10 @@ static const uint8_t motor_in2_pins[] = {MOTOR_1_IN2_PIN, MOTOR_2_IN2_PIN};
 // negativo inverte o sentido de giro (ponte H em modo bidirecional).
 void set_motor_voltage(Motor_Id motor, float voltage_to_motor) {
     voltage_to_motor = constrain(voltage_to_motor, -MAX_MOTOR_VOLTAGE, MAX_MOTOR_VOLTAGE);
-    float current_battery_voltage = get_battery_voltage();
+    // Piso de seguranca: sem isso, bateria desconectada/lendo perto de 0
+    // (ex.: testando na bancada so com USB) causa divisao por quase-zero
+    // logo abaixo, o que e comportamento indefinido ao converter pra int16.
+    float current_battery_voltage = max(get_battery_voltage(), (float)MIN_BATTERY_VOLTAGE_FOR_PWM);
     int16_t pwm_to_motor = round(255 * voltage_to_motor / current_battery_voltage);
     pwm_to_motor = constrain(pwm_to_motor, -255, 255);
 
@@ -29,10 +32,20 @@ void set_motor_voltage(Motor_Id motor, float voltage_to_motor) {
 }
 
 void motors_init() {
-    pinMode(MOTOR_1_IN1_PIN, OUTPUT);
-    pinMode(MOTOR_1_IN2_PIN, OUTPUT);
-    pinMode(MOTOR_2_IN1_PIN, OUTPUT);
-    pinMode(MOTOR_2_IN2_PIN, OUTPUT);
+    for (uint8_t motor = 0; motor < 2; motor++) {
+        pinMode(motor_in1_pins[motor], OUTPUT);
+        pinMode(motor_in2_pins[motor], OUTPUT);
+    }
+
+    // Essa versao do core ESP32 (Arduino) so tem a variante GLOBAL de
+    // analogWriteFrequency()/analogWriteResolution() - nao existe uma por
+    // pino aqui. Ou seja, TODO pino PWM do projeto (motores e turbina)
+    // precisa usar a MESMA frequencia/resolucao, e quem chamar essa funcao
+    // por ultimo antes do primeiro analogWrite() de cada pino "vence". Como
+    // motors e fan usam o mesmo valor (PWM_FREQUENCY_HZ / FAN_PWM_FREQUENCY_HZ
+    // = 50 kHz, 8 bits), isso nao causa problema hoje - mas se um dia
+    // precisar de frequencias diferentes por peripherico, vai exigir usar
+    // a API de LEDC diretamente (nao mais analogWrite).
     analogWriteFrequency(PWM_FREQUENCY_HZ);
     analogWriteResolution(8);
 
@@ -44,10 +57,10 @@ void motors_init() {
 // ou so desliga o PWM (roda livre, para por atrito/inercia).
 void brake_motors(bool active_brake) {
     uint8_t brake_pwm = active_brake ? 100 : 0;
-    analogWrite(MOTOR_1_IN1_PIN, brake_pwm);
-    analogWrite(MOTOR_1_IN2_PIN, brake_pwm);
-    analogWrite(MOTOR_2_IN1_PIN, brake_pwm);
-    analogWrite(MOTOR_2_IN2_PIN, brake_pwm);
+    for (uint8_t motor = 0; motor < 2; motor++) {
+        analogWrite(motor_in1_pins[motor], brake_pwm);
+        analogWrite(motor_in2_pins[motor], brake_pwm);
+    }
 }
 
 // Validacao de bancada: gira cada motor pra frente, pra tras, e para.

@@ -22,9 +22,6 @@
 
 #define BATTERY_HIGH_THRESHOLD ((float)(BATTERY_CELL_COUNT) * VOLTS_PER_CELL_HIGH)
 #define BATTERY_LOW_THRESHOLD  ((float)(BATTERY_CELL_COUNT) * VOLTS_PER_CELL_LOW)
-// Bem abaixo de qualquer LiPo real conectada - serve pra distinguir "sem
-// bateria/alimentando por outra via" de "bateria critica mas presente".
-#define USB_THRESHOLD           ((float)(BATTERY_CELL_COUNT) * 2.0)
 
 // Parametros de calibracao do ADC: NAO SAO OS DO PROJETO ANTIGO (a placa
 // antiga sensoreava so ate ~12,6V; essa placa precisa sensoriar ate
@@ -35,6 +32,19 @@
 #define BATTERY_SAMPLE_READINGS     4       // quantidade de leituras por amostra (reduz ruido)
 #define BATTERY_VOLTAGE_PARAMETER   16.80   // TODO: recalibrar - tensao medida no multimetro
 #define BATTERY_ADC_PARAMETER       4095    // TODO: recalibrar - leitura do ADC correspondente
+
+// Abaixo disso, consideramos que nao tem bateria de verdade conectada (pino
+// de leitura flutuando/proximo de 0V) - e uma caracteristica do CIRCUITO de
+// leitura, nao da bateria, entao NAO escala com BATTERY_CELL_COUNT (isso
+// era um bug: uma versao anterior multiplicava esse valor pelas celulas,
+// o que nao faz sentido - o circuito nao sabe quantas celulas a bateria
+// ausente teria). Tambem e placeholder ate calibrar na bancada.
+#define USB_THRESHOLD 3.0 // TODO: recalibrar
+
+// Piso de seguranca: nunca dividir por uma tensao de bateria menor que essa
+// (evita divisao por zero/quase-zero em set_motor_voltage()/set_fan_voltage()
+// se a bateria estiver desconectada ou a leitura falhar).
+#define MIN_BATTERY_VOLTAGE_FOR_PWM 1.0
 
 // Tempo (ms) de bateria fraca ininterrupta antes de battery_failsafe_triggered()
 // comecar a retornar true. O que fazer com isso ainda e uma decisao em
