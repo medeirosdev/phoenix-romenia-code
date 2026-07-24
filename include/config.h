@@ -15,4 +15,11 @@
 // competicao) - conferir sempre antes de embarcar.
 #define MODO_ROMENIA true
 
+// Failsafe "saiu da linha": se nenhum sensor frontal detectar a linha por
+// FAILSAFE_LINHA_PERDIDA_TIMEOUT_MS seguidos durante a corrida, o robo
+// para sozinho (freia e vai pro estado SAIR). Liga/desliga aqui, mesmo
+// padrao do MODO_ROMENIA (PLANEJAMENTO.md secao 12).
+#define FAILSAFE_LINHA_PERDIDA true
+#define FAILSAFE_LINHA_PERDIDA_TIMEOUT_MS 500 // ponto de partida, ajustar na pista
+
 #endif /* __CONFIG_H__ */

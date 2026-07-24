@@ -47,6 +47,12 @@ void set_noise_threshold(float given_threshold);
 // aproximada: -(N-1)/2 a +(N-1)/2, onde N = NUMBER_OF_FRONTAL_SENSORS.
 float read_robot_position();
 
+// Diz se, na ULTIMA chamada de read_robot_position(), pelo menos 1 sensor
+// detectou a linha de verdade (acima do line_threshold) - nao chama uma
+// leitura nova, so reporta o resultado da ultima. Usado pelo failsafe de
+// "saiu da linha" (ver PLANEJAMENTO.md secao 12 e config.h).
+bool line_sensors_is_on_line();
+
 void validar_sensores_frontais();
 
 #endif /* __LINE_SENSORS_H__ */

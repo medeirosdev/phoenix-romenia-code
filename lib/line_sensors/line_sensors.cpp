@@ -3,6 +3,7 @@
 #include "AD7490.h"
 
 static FrontalSensors FS;
+static bool last_on_line = false;
 
 static void reset_sensors_calibration() {
     for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
@@ -94,6 +95,8 @@ float read_robot_position() {
         }
     }
 
+    last_on_line = on_line;
+
     if (!on_line) {
         if (FS.position < 0) FS.position = -(NUMBER_OF_FRONTAL_SENSORS - 1) * 0.5f;
         else FS.position = (NUMBER_OF_FRONTAL_SENSORS - 1) * 0.5f;
@@ -104,6 +107,10 @@ float read_robot_position() {
     FS.position -= (NUMBER_OF_FRONTAL_SENSORS - 1) * 0.5f;
 
     return FS.position;
+}
+
+bool line_sensors_is_on_line() {
+    return last_on_line;
 }
 
 // Calibracao de bancada: passa a barra de sensores sobre a linha e o

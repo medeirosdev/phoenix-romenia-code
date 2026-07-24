@@ -4,6 +4,7 @@
 #include "motors.h"
 #include "fan.h"
 #include "bluetooth.h"
+#include "config.h"
 
 // =====================================================================
 // Entrada do usuario: Bluetooth ja existe (passo 7), mas IR ainda nao
@@ -80,6 +81,7 @@ void Robot::calibration_state() {
         case COMMAND_START_RACE:
             Serial.println("[state_machine] Iniciando corrida.");
             controllers_init();
+            line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
             set_state(RACE_STATE);
             break;
 
@@ -93,10 +95,25 @@ void Robot::calibration_state() {
 }
 
 // So anda: segue a linha com o PID, sem contar marcador/cruzamento/volta
-// (decisao do usuario, PLANEJAMENTO.md secao 10) - a UNICA forma de sair
-// daqui e o comando de STOP.
+// (decisao do usuario, PLANEJAMENTO.md secao 10) - sai daqui com o
+// comando de STOP, ou sozinho se o failsafe de "saiu da linha" disparar
+// (config.h - FAILSAFE_LINHA_PERDIDA).
 void Robot::race_state() {
     line_pid.run();
+
+    if (FAILSAFE_LINHA_PERDIDA) {
+        if (line_sensors_is_on_line()) {
+            line_lost_since = 0;
+        } else {
+            if (line_lost_since == 0) line_lost_since = millis();
+
+            if (millis() - line_lost_since >= FAILSAFE_LINHA_PERDIDA_TIMEOUT_MS) {
+                Serial.println("[state_machine] Failsafe: linha perdida ha muito tempo, parando.");
+                set_state(STOPPED_STATE);
+                return;
+            }
+        }
+    }
 
     if (read_user_input() == COMMAND_STOP) {
         Serial.println("[state_machine] STOP recebido.");
@@ -104,15 +121,22 @@ void Robot::race_state() {
     }
 }
 
-// Estado terminal: freia e desliga tudo. So sai daqui com reset fisico -
-// esse e o comportamento ASSUMIDO enquanto a pergunta da secao 12 (item
-// sobre o estado SAIR aceitar "nova tentativa" ou nao) nao e respondida.
+// Estado "parado": freia e desliga tudo. Aceita KO pra voltar direto pra
+// CALIBRACAO (nova tentativa, sem precisar resetar a placa - decisao do
+// usuario, PLANEJAMENTO.md secao 12) ou fica parado esperando esse
+// comando indefinidamente.
 void Robot::stopped_state() {
     static bool announced = false;
     if (!announced) {
         brake_motors(true);
         set_fan_voltage(0);
-        Serial.println("[state_machine] Parado. So volta a rodar com reset fisico da placa.");
+        Serial.println("[state_machine] Parado. Envie KO pra uma nova tentativa.");
         announced = true;
+    }
+
+    if (read_user_input() == COMMAND_START_CALIBRATION) {
+        Serial.println("[state_machine] Nova tentativa - voltando pra calibracao.");
+        announced = false;
+        set_state(CALIBRATION_STATE);
     }
 }

@@ -19,6 +19,11 @@ class Robot {
         void run();
 
     private:
+        // 0 = robo esta na linha agora (ou corrida nao comecou ainda);
+        // != 0 = millis() de quando ele saiu da linha, pro failsafe de
+        // "saiu da linha" (config.h) contar o tempo corrido.
+        unsigned long line_lost_since = 0;
+
         void calibration_state();
         void race_state();
         void stopped_state();
