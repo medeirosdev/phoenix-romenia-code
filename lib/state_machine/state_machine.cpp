@@ -3,17 +3,18 @@
 #include "controllers.h"
 #include "motors.h"
 #include "fan.h"
+#include "bluetooth.h"
 
 // =====================================================================
-// Entrada do usuario: ainda NAO existe IR nem Bluetooth (isso e passo 7
-// e 8 do PLANEJAMENTO.md secao 13 - vem DEPOIS do state_machine, que e
-// o passo 6). Por enquanto os comandos vem digitados no Serial Monitor
-// (uma linha por comando): KO, ST, SP, EX - mesmos codigos ja
-// documentados na secao 8 do PLANEJAMENTO.md.
+// Entrada do usuario: Bluetooth ja existe (passo 7), mas IR ainda nao
+// (passo 8, PLANEJAMENTO.md secao 13). Aceita comando tanto por
+// Bluetooth quanto por Serial Monitor (o Serial fica como atalho de
+// bancada, util quando nao da pra conectar um celular por perto) - mesmos
+// codigos documentados na secao 8: KO, ST, SP, EX.
 //
-// Essa funcao vai ser SUBSTITUIDA pelo user_interface de verdade (merge
-// IR+BT) quando esses modulos existirem - a ideia e so trocar de onde o
-// comando vem, sem mudar a logica de estados abaixo.
+// Essa funcao vai virar o user_interface de verdade (merge IR+BT) quando
+// o IR existir - a ideia e so acrescentar mais uma fonte, sem mudar a
+// logica de estados abaixo.
 // =====================================================================
 enum User_Command {
     COMMAND_NONE,
@@ -23,16 +24,23 @@ enum User_Command {
     COMMAND_EXIT                 // EX
 };
 
+static User_Command parse_command(const String &command) {
+    if (command == "KO") return COMMAND_START_CALIBRATION;
+    if (command == "ST") return COMMAND_START_RACE;
+    if (command == "SP") return COMMAND_STOP;
+    if (command == "EX") return COMMAND_EXIT;
+    return COMMAND_NONE;
+}
+
 static User_Command read_user_input() {
-    if (!Serial.available()) return COMMAND_NONE;
+    String bluetooth_command = read_bluetooth_message();
+    if (bluetooth_command != "") return parse_command(bluetooth_command);
 
-    String line = Serial.readStringUntil('\n');
-    line.trim();
-
-    if (line == "KO") return COMMAND_START_CALIBRATION;
-    if (line == "ST") return COMMAND_START_RACE;
-    if (line == "SP") return COMMAND_STOP;
-    if (line == "EX") return COMMAND_EXIT;
+    if (Serial.available()) {
+        String line = Serial.readStringUntil('\n');
+        line.trim();
+        return parse_command(line);
+    }
 
     return COMMAND_NONE;
 }
@@ -48,6 +56,8 @@ void Robot::set_state(Robot_State new_state) {
 }
 
 void Robot::run() {
+    bluetooth_check_connection();
+
     switch (current_state) {
         case CALIBRATION_STATE: calibration_state(); break;
         case RACE_STATE:        race_state();        break;
