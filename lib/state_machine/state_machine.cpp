@@ -4,6 +4,7 @@
 #include "motors.h"
 #include "fan.h"
 #include "bluetooth.h"
+#include "battery.h"
 #include "config.h"
 
 // =====================================================================
@@ -57,6 +58,12 @@ void Robot::set_state(Robot_State new_state) {
 }
 
 void Robot::run() {
+    // battery_monitoring() precisa rodar sempre, nao so dentro de
+    // validar_bateria() - sem isso, get_battery_voltage() fica travada no
+    // valor inicial otimista pra sempre, e a compensacao de tensao em
+    // set_motor_voltage()/set_fan_voltage() nunca reflete a bateria real
+    // (bug encontrado em revisao de codigo, 22/07/2026).
+    battery_monitoring();
     bluetooth_check_connection();
 
     switch (current_state) {

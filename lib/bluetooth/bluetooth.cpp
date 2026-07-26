@@ -101,19 +101,32 @@ bool bluetooth_is_connected() {
     return deviceConnected;
 }
 
+static unsigned long disconnected_at = 0;
+static bool waiting_to_readvertise = false;
+
 // Chamar periodicamente (ex.: a cada loop()) - reinicia o advertising
 // depois de uma desconexao, senao o robo some do scan do celular pra
-// sempre depois da primeira conexao cair.
+// sempre depois da primeira conexao cair. NAO usa delay() (usava antes -
+// travava o loop inteiro, incluindo o PID em corrida, por meio segundo
+// toda vez que o Bluetooth caia - achado em revisao de codigo,
+// 22/07/2026): espera os mesmos ~500ms pro stack BLE se resetar, mas sem
+// bloquear nada enquanto isso.
 void bluetooth_check_connection() {
     if (!deviceConnected && oldDeviceConnected) {
-        delay(500); // tempo pra stack BLE se resetar
+        oldDeviceConnected = deviceConnected;
+        disconnected_at = millis();
+        waiting_to_readvertise = true;
+    }
+
+    if (waiting_to_readvertise && (millis() - disconnected_at >= 500)) {
         pServer->startAdvertising();
         Serial.println("[bluetooth] Aguardando nova conexao...");
-        oldDeviceConnected = deviceConnected;
+        waiting_to_readvertise = false;
     }
 
     if (deviceConnected && !oldDeviceConnected) {
         oldDeviceConnected = deviceConnected;
+        waiting_to_readvertise = false; // reconectou antes do timer completar
     }
 }
 

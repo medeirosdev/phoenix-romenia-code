@@ -14,8 +14,9 @@
 #define BATTERY_CELL_COUNT 3   // TODO: confirmar qual pack esta no robo AGORA (3 ou 4)
 
 // Faixas de tensao POR CELULA de uma LiPo comum (valores padrao da
-// industria, nao dependem de calibracao de hardware):
-#define VOLTS_PER_CELL_FULL      4.20  // cheia
+// industria, nao dependem de calibracao de hardware). VOLTS_PER_CELL_CRITICAL
+// ainda nao e usado em nenhum threshold - fica registrado pra quando o
+// failsafe de bateria (PLANEJAMENTO.md secao 12) for definido de vez.
 #define VOLTS_PER_CELL_HIGH      3.90  // ainda com boa folga
 #define VOLTS_PER_CELL_LOW       3.50  // hora de trocar/carregar
 #define VOLTS_PER_CELL_CRITICAL  3.30  // NUNCA deixar chegar aqui, dana a celula
