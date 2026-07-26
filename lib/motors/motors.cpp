@@ -9,9 +9,9 @@
 //
 // ESSE CHIP E UMA MEIA-PONTE SIMPLES (1 MOSFET high-side + 1 low-side),
 // nao um H-bridge integrado como no projeto antigo (bia-senna-code-2026).
-// Cada motor usa 2 chips independentes, um por terminal - por isso
-// PWM A/B (Motor 1) e PWM C/D (Motor 2) sao 2 sinais SEPARADOS, um por
-// chip, nao um par "PWM + direcao" como antes.
+// Cada motor usa 2 chips independentes, um por terminal (motor esquerdo:
+// GPIO14+21; motor direito: GPIO10+11 - ver pinout.h) - 2 sinais
+// SEPARADOS por motor, nao um par "PWM + direcao" como antes.
 //
 // Tabela-verdade do datasheet (pino IN, com INH=1/habilitado):
 //   IN=0 -> terminal no GND (lado baixo ativo)
@@ -37,9 +37,13 @@
 //            um estado "roda livre"/tri-state disponivel via IN sozinho)
 // =====================================================================
 
-// Pino de cada terminal do motor (motor_terminal_a = chip A, motor_terminal_b = chip B).
-static const uint8_t motor_terminal_a_pins[] = {MOTOR_1_IN1_PIN, MOTOR_2_IN1_PIN};
-static const uint8_t motor_terminal_b_pins[] = {MOTOR_1_IN2_PIN, MOTOR_2_IN2_PIN};
+// Pino de cada terminal do motor (motor_terminal_a = chip A, motor_terminal_b = chip B),
+// indexados por Motor_Id (LEFT_MOTOR=0, RIGHT_MOTOR=1). A ordem A/B dentro
+// de cada par nao foi especificada no documento de pinout - se o motor
+// girar ao contrario do esperado, inverter o par correspondente aqui
+// (ou direto no pinout.h).
+static const uint8_t motor_terminal_a_pins[] = {LEFT_MOTOR_IN1_PIN, RIGHT_MOTOR_IN1_PIN};
+static const uint8_t motor_terminal_b_pins[] = {LEFT_MOTOR_IN2_PIN, RIGHT_MOTOR_IN2_PIN};
 
 // Escreve uma tensao (-MAX..+MAX) num motor, convertendo pra PWM (0-255)
 // proporcional a tensao ATUAL da bateria - assim o motor recebe a mesma
@@ -83,8 +87,8 @@ void motors_init() {
     analogWriteFrequency(PWM_FREQUENCY_HZ);
     analogWriteResolution(8);
 
-    set_motor_voltage(MOTOR_1, 0);
-    set_motor_voltage(MOTOR_2, 0);
+    set_motor_voltage(LEFT_MOTOR, 0);
+    set_motor_voltage(RIGHT_MOTOR, 0);
 }
 
 // Freia os dois motores (os dois terminais no GND). Com esse driver (ver
@@ -105,28 +109,28 @@ void brake_motors(bool active_brake) {
 // IMPORTANTE: na primeira vez que testar um motor novo, deixar a roda
 // LEVANTADA DO CHAO, pra nao sair correndo por engano.
 void validar_motores() {
-    Serial.println("[validar_motores] Motor 1 sentido horario");
-    set_motor_voltage(MOTOR_1, 3.0);
+    Serial.println("[validar_motores] Motor ESQUERDO sentido horario");
+    set_motor_voltage(LEFT_MOTOR, 3.0);
     delay(1500);
-    set_motor_voltage(MOTOR_1, 0);
+    set_motor_voltage(LEFT_MOTOR, 0);
     delay(500);
 
-    Serial.println("[validar_motores] Motor 1 sentido anti-horario");
-    set_motor_voltage(MOTOR_1, -3.0);
+    Serial.println("[validar_motores] Motor ESQUERDO sentido anti-horario");
+    set_motor_voltage(LEFT_MOTOR, -3.0);
     delay(1500);
-    set_motor_voltage(MOTOR_1, 0);
+    set_motor_voltage(LEFT_MOTOR, 0);
     delay(1000);
 
-    Serial.println("[validar_motores] Motor 2 sentido horario");
-    set_motor_voltage(MOTOR_2, 3.0);
+    Serial.println("[validar_motores] Motor DIREITO sentido horario");
+    set_motor_voltage(RIGHT_MOTOR, 3.0);
     delay(1500);
-    set_motor_voltage(MOTOR_2, 0);
+    set_motor_voltage(RIGHT_MOTOR, 0);
     delay(500);
 
-    Serial.println("[validar_motores] Motor 2 sentido anti-horario");
-    set_motor_voltage(MOTOR_2, -3.0);
+    Serial.println("[validar_motores] Motor DIREITO sentido anti-horario");
+    set_motor_voltage(RIGHT_MOTOR, -3.0);
     delay(1500);
-    set_motor_voltage(MOTOR_2, 0);
+    set_motor_voltage(RIGHT_MOTOR, 0);
 
     Serial.println("[validar_motores] fim");
 }

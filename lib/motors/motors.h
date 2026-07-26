@@ -10,13 +10,11 @@
 #define MAX_MOTOR_VOLTAGE  12.0
 #define PWM_FREQUENCY_HZ   50000 // 50 kHz
 
-// Ainda nao sabemos qual motor (1 ou 2) fica fisicamente a esquerda ou a
-// direita no robo montado (pergunta em aberto, ver PLANEJAMENTO.md secao
-// 12) - por isso os nomes ficam MOTOR_1/MOTOR_2 por enquanto, nao
-// LEFT_MOTOR/RIGHT_MOTOR. Ajustar aqui quando isso for confirmado.
+// Esquerda/direita confirmados no documento de referencia de pinout
+// (22/07/2026) - ver pinout.h.
 enum Motor_Id {
-    MOTOR_1,
-    MOTOR_2
+    LEFT_MOTOR,
+    RIGHT_MOTOR
 };
 
 void motors_init();

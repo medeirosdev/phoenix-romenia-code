@@ -21,11 +21,15 @@ void LinePIDController::init() {
 // motores. So roda de fato a cada sampling_rate_ms - chamar mais rapido
 // que isso nao adianta, o AD7490 e o gargalo de velocidade, nao o loop.
 //
-// ATENCAO: qual motor recebe +correcao e qual recebe -correcao depende
-// de qual e fisicamente esquerdo/direito - isso ainda NAO foi confirmado
-// (PLANEJAMENTO.md secao 17, vai ser validado na bancada). Se o robo
-// curvar pro lado errado quando a linha sai do centro, e so inverter os
-// dois analogWrite abaixo (trocar MOTOR_1 por MOTOR_2).
+// Convencao (mesma do projeto antigo): posicao positiva = linha pra
+// direita -> erro negativo -> correcao negativa -> motor direito freia
+// (RIGHT_MOTOR = base + correcao) e motor esquerdo acelera (LEFT_MOTOR =
+// base - correcao), o que vira o robo pra direita, de volta pro centro.
+//
+// Isso assume que o sensor 0 do AD7490 e fisicamente o mais a esquerda
+// (ainda nao verificado na bancada, ver nota em AD7490.cpp sobre a
+// reordenacao dos 4 primeiros canais). Se o robo curvar pro lado errado,
+// o problema mais provavel e essa suposicao, nao esse calculo aqui.
 void LinePIDController::run() {
     unsigned long now = micros();
     if (now - last_sample_time_us < (unsigned long)(sampling_rate_ms * 1000)) return;
@@ -41,25 +45,24 @@ void LinePIDController::run() {
 
     last_error = current_error;
 
-    set_motor_voltage(MOTOR_1, motor_base_value + correction);
-    set_motor_voltage(MOTOR_2, motor_base_value - correction);
+    set_motor_voltage(RIGHT_MOTOR, motor_base_value + correction);
+    set_motor_voltage(LEFT_MOTOR, motor_base_value - correction);
 }
 
 void controllers_init() {
     line_pid.init();
 }
 
-// A "validacao" desse modulo e, na pratica, o objetivo inteiro do
-// firmware nesse estagio: seguir a linha. Diferente dos outros
-// validar_*(), essa funcao NUNCA RETORNA (fica rodando o PID pra
-// sempre) - vai ser substituida quando o state_machine existir
-// (PLANEJAMENTO.md secao 13, passo 6), que vai dar um jeito de verdade
-// de iniciar/parar a corrida.
+// Teste isolado do PID, fora da maquina de estados (que ja existe em
+// state_machine.cpp, com calibracao/start/stop de verdade via comando -
+// prefira usar aquele fluxo). Essa funcao NUNCA RETORNA (fica rodando o
+// PID pra sempre) - util só pra testar o PID sozinho, sem depender de
+// nenhum comando externo.
 //
 // Calibra os sensores frontais primeiro (5s), depois entra no loop do
 // PID. IMPORTANTE: colocar o robo NA LINHA antes de ligar, com espaco
-// livre na pista - nesse estagio ainda nao existe comando de parada,
-// só desligando a energia.
+// livre na pista - aqui nao tem comando de parada, só desligando a
+// energia.
 void validar_controllers() {
     Serial.println("[validar_controllers] Calibrando sensores frontais...");
     calibrate_line_sensors();
