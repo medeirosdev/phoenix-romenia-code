@@ -6,6 +6,7 @@
 #include "line_sensors.h"
 #include "controllers.h"
 #include "bluetooth.h"
+#include "led.h"
 #include "state_machine.h"
 
 // As validacoes de bring-up (bateria, motores, fan, sensores, bluetooth)
@@ -26,12 +27,14 @@ void setup() {
     fan_init();
     line_sensors_init();
     bluetooth_init();
+    led_init();
 
     // validar_bateria();
     // validar_motores();
     // validar_fan();
     // validar_sensores_frontais();
     // validar_bluetooth();
+    // validar_led();
     // validar_controllers();
 
     robot.init();
