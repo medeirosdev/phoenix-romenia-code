@@ -6,6 +6,7 @@
 #include "bluetooth.h"
 #include "battery.h"
 #include "led.h"
+#include "eeprom_manager.h"
 #include "config.h"
 
 // =====================================================================
@@ -13,9 +14,10 @@
 // (passo 8, PLANEJAMENTO.md secao 13). Aceita comando tanto por
 // Bluetooth quanto por Serial Monitor (o Serial fica como atalho de
 // bancada, util quando nao da pra conectar um celular por perto) - mesmos
-// codigos documentados na secao 8: KO, ST, SP, EX, e os de diagnostico
+// codigos documentados na secao 8: KO, ST, SP, EX, os de diagnostico
 // TM/TL/TF/TN/TB (decisao do usuario, 22/07/2026: comando via BT, igual
-// o padrao do projeto antigo - opcao 1 da PLANEJAMENTO.md secao 12).
+// o padrao do projeto antigo - opcao 1 da PLANEJAMENTO.md secao 12), e
+// RF (reset de fabrica da calibracao salva, PLANEJAMENTO.md secao 9).
 //
 // Essa funcao vai virar o user_interface de verdade (merge IR+BT) quando
 // o IR existir - a ideia e so acrescentar mais uma fonte, sem mudar a
@@ -31,7 +33,8 @@ enum User_Command {
     COMMAND_TEST_LED,               // TL
     COMMAND_TEST_FRONTAL_SENSORS,    // TF
     COMMAND_TEST_FAN,                 // TN
-    COMMAND_TEST_BATTERY               // TB
+    COMMAND_TEST_BATTERY,               // TB
+    COMMAND_RESET_CALIBRATION            // RF
 };
 
 static User_Command parse_command(const String &command) {
@@ -44,6 +47,7 @@ static User_Command parse_command(const String &command) {
     if (command == "TF") return COMMAND_TEST_FRONTAL_SENSORS;
     if (command == "TN") return COMMAND_TEST_FAN;
     if (command == "TB") return COMMAND_TEST_BATTERY;
+    if (command == "RF") return COMMAND_RESET_CALIBRATION;
     return COMMAND_NONE;
 }
 
@@ -81,6 +85,7 @@ static bool handle_diagnostic_command(User_Command command) {
 Robot robot;
 
 void Robot::init() {
+    load_line_sensors_calibration(); // se nao tiver nada salvo, so mantem o default
     current_state = CALIBRATION_STATE;
 }
 
@@ -116,7 +121,8 @@ void Robot::calibration_state() {
         case COMMAND_START_CALIBRATION:
             Serial.println("[state_machine] Calibrando sensores frontais...");
             calibrate_line_sensors();
-            Serial.println("[state_machine] Calibracao concluida. Envie ST pra iniciar a corrida.");
+            save_line_sensors_calibration(); // salva automaticamente - sem os 3 modos do projeto antigo
+            Serial.println("[state_machine] Calibracao concluida e salva. Envie ST pra iniciar a corrida.");
             break;
 
         case COMMAND_START_RACE:
@@ -128,6 +134,10 @@ void Robot::calibration_state() {
 
         case COMMAND_EXIT:
             set_state(STOPPED_STATE);
+            break;
+
+        case COMMAND_RESET_CALIBRATION:
+            erase_line_sensors_calibration();
             break;
 
         default:
