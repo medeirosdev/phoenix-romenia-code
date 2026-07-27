@@ -51,7 +51,15 @@ static void update_battery_failsafe_timer() {
     }
 }
 
+// Se autolimita (mesmo padrao do LinePIDController::run()) - chamar mais
+// rapido que BATTERY_MONITORING_INTERVAL_MS nao adianta nada, so gasta
+// ADC/CPU a toa.
 void battery_monitoring() {
+    static unsigned long last_monitoring_time = 0;
+    unsigned long now = millis();
+    if (now - last_monitoring_time < BATTERY_MONITORING_INTERVAL_MS) return;
+    last_monitoring_time = now;
+
     read_battery_voltage();
     read_battery_status();
     update_battery_failsafe_timer();

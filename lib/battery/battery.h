@@ -47,6 +47,13 @@
 // se a bateria estiver desconectada ou a leitura falhar).
 #define MIN_BATTERY_VOLTAGE_FOR_PWM 1.0
 
+// battery_monitoring() e chamada em todo Robot::run() (sem delay entre
+// chamadas, ver state_machine.cpp) - sem esse limite ela leria o ADC
+// (4 leituras cada vez) milhares de vezes por segundo a toa, ja que a
+// tensao da bateria nao muda tao rapido assim. Achado em revisao de
+// codigo, 22/07/2026.
+#define BATTERY_MONITORING_INTERVAL_MS 200
+
 // Tempo (ms) de bateria fraca ininterrupta antes de battery_failsafe_triggered()
 // comecar a retornar true. O que fazer com isso ainda e uma decisao em
 // aberto (ver PLANEJAMENTO.md secao 12) - essa lib so mede e avisa, nao
