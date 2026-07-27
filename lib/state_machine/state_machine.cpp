@@ -5,6 +5,7 @@
 #include "fan.h"
 #include "bluetooth.h"
 #include "battery.h"
+#include "led.h"
 #include "config.h"
 
 // =====================================================================
@@ -12,7 +13,9 @@
 // (passo 8, PLANEJAMENTO.md secao 13). Aceita comando tanto por
 // Bluetooth quanto por Serial Monitor (o Serial fica como atalho de
 // bancada, util quando nao da pra conectar um celular por perto) - mesmos
-// codigos documentados na secao 8: KO, ST, SP, EX.
+// codigos documentados na secao 8: KO, ST, SP, EX, e os de diagnostico
+// TM/TL/TF/TN/TB (decisao do usuario, 22/07/2026: comando via BT, igual
+// o padrao do projeto antigo - opcao 1 da PLANEJAMENTO.md secao 12).
 //
 // Essa funcao vai virar o user_interface de verdade (merge IR+BT) quando
 // o IR existir - a ideia e so acrescentar mais uma fonte, sem mudar a
@@ -23,7 +26,12 @@ enum User_Command {
     COMMAND_START_CALIBRATION, // KO
     COMMAND_START_RACE,        // ST
     COMMAND_STOP,               // SP
-    COMMAND_EXIT                 // EX
+    COMMAND_EXIT,                 // EX
+    COMMAND_TEST_MOTORS,           // TM
+    COMMAND_TEST_LED,               // TL
+    COMMAND_TEST_FRONTAL_SENSORS,    // TF
+    COMMAND_TEST_FAN,                 // TN
+    COMMAND_TEST_BATTERY               // TB
 };
 
 static User_Command parse_command(const String &command) {
@@ -31,6 +39,11 @@ static User_Command parse_command(const String &command) {
     if (command == "ST") return COMMAND_START_RACE;
     if (command == "SP") return COMMAND_STOP;
     if (command == "EX") return COMMAND_EXIT;
+    if (command == "TM") return COMMAND_TEST_MOTORS;
+    if (command == "TL") return COMMAND_TEST_LED;
+    if (command == "TF") return COMMAND_TEST_FRONTAL_SENSORS;
+    if (command == "TN") return COMMAND_TEST_FAN;
+    if (command == "TB") return COMMAND_TEST_BATTERY;
     return COMMAND_NONE;
 }
 
@@ -45,6 +58,24 @@ static User_Command read_user_input() {
     }
 
     return COMMAND_NONE;
+}
+
+// Comandos de diagnostico (TM/TL/TF/TN/TB, PLANEJAMENTO.md secao 8) -
+// disponiveis em CALIBRACAO e SAIR, mas NAO em RACE_STATE: rodar um
+// validar_*() no meio da corrida ia brigar com o PID escrevendo nos
+// motores ao mesmo tempo. Cada validar_*() e bloqueante (alguns
+// segundos) - normal pra um comando de bancada, nao de corrida. Retorna
+// true se tratou o comando (pra quem chamou saber que nao precisa
+// processar mais nada nesse ciclo).
+static bool handle_diagnostic_command(User_Command command) {
+    switch (command) {
+        case COMMAND_TEST_MOTORS:          validar_motores();           return true;
+        case COMMAND_TEST_LED:             validar_led();               return true;
+        case COMMAND_TEST_FRONTAL_SENSORS: validar_sensores_frontais(); return true;
+        case COMMAND_TEST_FAN:             validar_fan();               return true;
+        case COMMAND_TEST_BATTERY:         validar_bateria();           return true;
+        default:                           return false;
+    }
 }
 
 Robot robot;
@@ -78,7 +109,10 @@ void Robot::run() {
 // abortar no meio) ou de ja iniciar a corrida com o que estiver
 // carregado (default de fabrica ou calibracao anterior).
 void Robot::calibration_state() {
-    switch (read_user_input()) {
+    User_Command command = read_user_input();
+    if (handle_diagnostic_command(command)) return;
+
+    switch (command) {
         case COMMAND_START_CALIBRATION:
             Serial.println("[state_machine] Calibrando sensores frontais...");
             calibrate_line_sensors();
@@ -141,7 +175,10 @@ void Robot::stopped_state() {
         announced = true;
     }
 
-    if (read_user_input() == COMMAND_START_CALIBRATION) {
+    User_Command command = read_user_input();
+    if (handle_diagnostic_command(command)) return;
+
+    if (command == COMMAND_START_CALIBRATION) {
         Serial.println("[state_machine] Nova tentativa - voltando pra calibracao.");
         announced = false;
         set_state(CALIBRATION_STATE);
