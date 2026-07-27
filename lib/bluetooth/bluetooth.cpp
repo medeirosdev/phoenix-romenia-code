@@ -3,11 +3,30 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 static BLEServer *pServer = NULL;
 static BLECharacteristic *characteristicMessage = NULL;
 static String message = "";
-static bool deviceConnected = false;
+
+// message e escrito pela task da pilha BLE (dentro de MessageCallbacks::
+// onWrite(), que roda numa task PROPRIA do Bluetooth, diferente da task
+// que roda o loop() do Arduino) e lido pela task principal (dentro de
+// read_bluetooth_message(), chamada por Robot::run()). Sem protecao, uma
+// escrita (que pode realocar o buffer interno do String) acontecendo ao
+// mesmo tempo que uma leitura (.indexOf()/.substring()) e uma condicao
+// de corrida real - pode corromper memoria/travar, nao so ler valor
+// desatualizado. Achado em revisao de codigo, 22/07/2026. Usamos um
+// mutex do FreeRTOS (nao um spinlock/critical section) porque as
+// operacoes de String podem alocar memoria, o que nao e seguro dentro
+// de uma critical section.
+static SemaphoreHandle_t message_mutex = NULL;
+
+// deviceConnected e escrito pela task do BLE (onConnect/onDisconnect) e
+// lido pela task principal - volatile garante que o compilador nao
+// guarde um valor antigo em registrador entre as duas tasks.
+static volatile bool deviceConnected = false;
 static bool oldDeviceConnected = false;
 
 class MyServerCallbacks : public BLEServerCallbacks {
@@ -27,7 +46,9 @@ class MyServerCallbacks : public BLEServerCallbacks {
 class MessageCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *characteristic) {
         std::string data = characteristic->getValue();
+        xSemaphoreTake(message_mutex, portMAX_DELAY);
         message = data.c_str();
+        xSemaphoreGive(message_mutex);
     }
 
     void onRead(BLECharacteristic *characteristic) {
@@ -37,6 +58,8 @@ class MessageCallbacks : public BLECharacteristicCallbacks {
 
 void bluetooth_init() {
     Serial.println("[bluetooth] Inicializando...");
+
+    message_mutex = xSemaphoreCreateMutex();
 
     BLEDevice::init(DEVICE_NAME);
     BLEDevice::setMTU(517); // MTU maximo, evita erro GATT 133 em alguns celulares
@@ -73,18 +96,25 @@ void bluetooth_init() {
 }
 
 void bluetooth_resume() {
+    xSemaphoreTake(message_mutex, portMAX_DELAY);
     message = "";
+    xSemaphoreGive(message_mutex);
 }
 
 // Mensagens terminam com \r (mesmo protocolo do app usado com a Bia) -
 // so retorna algo quando o terminador chegou, senao devolve string vazia.
+// NAO chama bluetooth_resume() aqui dentro (deixaria o mutex - que nao e
+// reentrante - travado esperando ele mesmo) - limpa direto.
 String read_bluetooth_message() {
     String result = "";
+
+    xSemaphoreTake(message_mutex, portMAX_DELAY);
     int index = message.indexOf('\r');
     if (index > 0) {
         result = message.substring(0, index);
-        bluetooth_resume();
+        message = "";
     }
+    xSemaphoreGive(message_mutex);
 
     return result;
 }
