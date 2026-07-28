@@ -8,7 +8,10 @@
 // real (o chassi, o peso e os motores são diferentes).
 #define LINE_PID_SETPOINT          0.0
 #define LINE_PID_KP                1.5
-#define LINE_PID_KI                0.0
+#define LINE_PID_KI                0.0  // ATENCAO: com kI > 0, accumulated_error (controllers.cpp)
+                                          // nao tem limite (sem anti-windup) - se for usar kI de
+                                          // verdade, adicionar um clamp em accumulated_error antes.
+                                          // Inofensivo hoje porque kI=0 zera o termo de qualquer jeito.
 #define LINE_PID_KD                0.015
 #define LINE_PID_SAMPLING_RATE_MS  2.0
 

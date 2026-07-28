@@ -45,19 +45,25 @@ static void normalize_frontal_sensors_readings() {
     read_frontal_sensors_adc();
 
     for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
-        uint16_t reading = constrain(
-            FS.adc_reading[sensor],
-            FS.min_calibration_reading[sensor],
-            FS.max_calibration_reading[sensor]
-        );
+        uint16_t sensor_min = FS.min_calibration_reading[sensor];
+        uint16_t sensor_max = FS.max_calibration_reading[sensor];
 
-        FS.normalized_reading[sensor] = map(
-            reading,
-            FS.min_calibration_reading[sensor],
-            FS.max_calibration_reading[sensor],
-            0,
-            MAX_NORMALIZED_VALUE
-        );
+        // Sensor sem faixa de calibracao valida - ou nunca variou durante
+        // a calibracao (provavel defeito/desconectado), ou a calibracao
+        // nunca rodou (fica com o default max=0 < min=4095). map() faria
+        // divisao por zero no primeiro caso, e devolveria lixo invertido
+        // no segundo - em vez disso, trata como "sem leitura" (valor
+        // baixo, abaixo do noise_threshold), sem contaminar a media
+        // ponderada em read_robot_position(). Achado em revisao de
+        // codigo, 22/07/2026.
+        if (sensor_max <= sensor_min) {
+            FS.normalized_reading[sensor] = 0;
+            continue;
+        }
+
+        uint16_t reading = constrain(FS.adc_reading[sensor], sensor_min, sensor_max);
+
+        FS.normalized_reading[sensor] = map(reading, sensor_min, sensor_max, 0, MAX_NORMALIZED_VALUE);
 
         if (!MODO_ROMENIA) {
             // Linha branca (testes de bancada): inverte, pra linha continuar
