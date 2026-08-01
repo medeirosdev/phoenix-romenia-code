@@ -5,9 +5,7 @@
 // PINOUT DO ROBO ROMENIA (ESP32-S3-WROOM-1-N16R8)
 //
 // Fonte: "Pinos da Bia Romênia.pdf" (documento de referencia dedicado,
-// 22/07/2026) - substitui por completo a leitura visual antiga feita em
-// cima do schematic (image.png), que teve pelo menos 1 erro confirmado
-// (ver PLANEJAMENTO.md secao 4.5). Esse arquivo e o UNICO lugar que deve
+// ver PLANEJAMENTO.md secao 4.5). Esse arquivo e o UNICO lugar que deve
 // ser editado quando um pino for corrigido.
 // =====================================================================
 

@@ -51,12 +51,16 @@ bool load_line_sensors_calibration() {
     return true;
 }
 
-// Nao precisa apagar os dados de verdade - so invalidar a assinatura ja
-// faz load_line_sensors_calibration() tratar como "nao tem nada salvo".
+// Invalida a assinatura na EEPROM (load_line_sensors_calibration() passa
+// a tratar como "nao tem nada salvo") E reseta a calibracao que ja esta
+// carregada em RAM - sem o reset em RAM, o robo continuava correndo com
+// a calibracao antiga ate a placa reiniciar, mesmo depois do RF (achado
+// em revisao de codigo, 31/07/2026).
 void erase_line_sensors_calibration() {
     EEPROM.put(EEPROM_MAGIC_ADDRESS, (uint16_t)0x0000);
     EEPROM.commit();
-    Serial.println("[eeprom_manager] Calibracao salva apagada.");
+    reset_line_sensors_calibration();
+    Serial.println("[eeprom_manager] Calibracao apagada (EEPROM e memoria).");
 }
 
 // Validacao de bancada: salva a calibracao atual, zera a copia em

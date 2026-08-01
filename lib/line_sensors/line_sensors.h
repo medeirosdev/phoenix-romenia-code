@@ -31,6 +31,12 @@ typedef struct {
 
 void line_sensors_init();
 void calibrate_line_sensors();
+
+// Volta a calibracao EM MEMORIA pro default de fabrica (sem faixa
+// valida - todo sensor passa a ler "sem linha" ate recalibrar). Usado
+// pelo comando RF: sem isso, apagar so a EEPROM deixava o robo correndo
+// com a calibracao antiga ainda carregada em RAM ate a placa reiniciar.
+void reset_line_sensors_calibration();
 void set_line_sensors_calibration_values(
     short max_values[NUMBER_OF_FRONTAL_SENSORS],
     short min_values[NUMBER_OF_FRONTAL_SENSORS]

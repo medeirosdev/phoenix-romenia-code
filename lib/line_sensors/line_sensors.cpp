@@ -73,6 +73,10 @@ static void normalize_frontal_sensors_readings() {
     }
 }
 
+void reset_line_sensors_calibration() {
+    reset_sensors_calibration();
+}
+
 void set_line_threshold(float given_threshold) {
     FS.line_threshold = given_threshold;
 }

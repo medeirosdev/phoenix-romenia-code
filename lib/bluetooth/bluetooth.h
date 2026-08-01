@@ -9,8 +9,7 @@
 #define SERVICE_UUID "7e5a2f10-3c4b-4d8e-9a1f-6b2c8e4d7f30"
 #define MESSAGE_UUID "9c3e7a20-1b5d-4f6a-8e2c-3a7f9d1b4e60"
 
-#define DEVICE_MANUFACTURER "Phoenix Unicamp"
-#define DEVICE_NAME          "Phoenix RC-ROU"
+#define DEVICE_NAME "Phoenix RC-ROU"
 
 void bluetooth_init();
 void send_bluetooth_message(String message);
