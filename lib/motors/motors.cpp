@@ -19,14 +19,9 @@
 // Ou seja, com INH fixo em habilitado, o proprio pino IN funciona como
 // um PWM comum (0-255 = 0%-100% do tempo no lado alto).
 //
-// SUPOSICAO AINDA NAO CONFIRMADA: assumimos que o pino INH de cada chip
-// esta FIXO/habilitado na placa (nao controlado pelo ESP32), porque so
-// existe 1 sinal rotulado por chip no schematic (PWM A, nao "PWM A" +
-// "INH A"). Se isso estiver errado - se o INH tambem for controlado pelo
-// ESP32 e estiver flutuando/desabilitado - os motores simplesmente nao
-// vao girar (o datasheet diz que INH tem pull-down interno, ou seja,
-// default = desabilitado se nao for ligado em nada). Essa suposicao esta
-// registrada como pergunta pro Ricardo (PLANEJAMENTO.md secao 17).
+// O pino INH de cada chip esta FIXO/habilitado direto na placa (sempre
+// ligado), nao e controlado pelo ESP32 - confirmado por Ricardo
+// (PLANEJAMENTO.md secao 17).
 //
 // Esquema pra driver bidirecional com 2 meias-pontes independentes
 // (1 por terminal do motor), tambem chamado de "sign-magnitude":
