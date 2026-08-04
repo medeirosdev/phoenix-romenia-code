@@ -14,7 +14,7 @@ completo, com todas as decisões e o histórico de hardware, está em
 ## Hardware
 
 - MCU: ESP32-S3-WROOM-1-N16R8
-- Sensores de linha: 9 sensores frontais via ADC AD7490 (SPI, 12 bits, 16 canais)
+- Sensores de linha: 16 sensores frontais via ADC AD7490 (SPI, 12 bits, 16 canais - todos usados)
 - Motores: 2 motores DC, cada um controlado por um par de chips BTN9960LV (meia-ponte, esquema sign-magnitude, sem estado de coast)
 - Turbina de sucção: 1 canal PWM
 - LEDs: 2 grupos FastLED independentes (frontal e principal)

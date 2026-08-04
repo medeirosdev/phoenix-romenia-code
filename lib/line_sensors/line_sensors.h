@@ -6,7 +6,11 @@
 // Nao existem sensores laterais neste robo (confirmado - o header "SOS"
 // e so reserva de pinos, ver PLANEJAMENTO.md secao 4.4). Essa lib cuida
 // SO dos sensores frontais.
-#define NUMBER_OF_FRONTAL_SENSORS      9
+//
+// Sao 16 sensores fisicos, um por canal do AD7490 (canais 0 a 15 -
+// confirmado pelo usuario, 03/08/2026), nao 9 como o planejamento
+// original previa - o ADC e usado por inteiro.
+#define NUMBER_OF_FRONTAL_SENSORS      16
 #define NUMBER_OF_SAMPLES_PER_READING  2   // leituras por amostra (reduz ruido)
 #define CALIBRATION_DURATION_MS        5000
 

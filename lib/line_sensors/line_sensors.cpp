@@ -1,6 +1,7 @@
 #include "line_sensors.h"
 #include "config.h"
 #include "AD7490.h"
+#include "bluetooth.h"
 
 static FrontalSensors FS;
 static bool last_on_line = false;
@@ -165,19 +166,28 @@ void line_sensors_init() {
     set_noise_threshold(NOISE_THRESHOLD);
 }
 
-// Validacao de bancada: imprime a leitura CRUA (antes de calibrar) dos 9
-// sensores frontais por 10s. Serve pra conferir a fiacao/SPI antes de
+// Validacao de bancada: imprime a leitura CRUA (antes de calibrar) dos
+// NUMBER_OF_FRONTAL_SENSORS sensores frontais por 10s. Serve pra conferir a fiacao/SPI antes de
 // rodar uma calibracao de verdade - nao depende de calibracao nenhuma.
+// Manda a mesma leitura por Bluetooth (CSV: "1234,1235,...") pra quando o
+// comando TF vier do app, e nao so do Serial Monitor - sem isso o app
+// nao recebia nada de volta.
 void validar_sensores_frontais() {
     unsigned long start_time = millis();
 
     while (millis() - start_time < 10000) {
         read_frontal_sensors_adc();
+
         Serial.print("[validar_sensores_frontais] ");
+        String csv = "";
         for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
             Serial.printf("S%d:%4d ", sensor, FS.adc_reading[sensor]);
+            if (sensor > 0) csv += ",";
+            csv += FS.adc_reading[sensor];
         }
         Serial.println();
+        send_bluetooth_message(csv);
+
         delay(200);
     }
 }

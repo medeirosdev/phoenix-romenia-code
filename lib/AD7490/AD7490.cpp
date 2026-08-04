@@ -31,14 +31,14 @@ static uint16_t write_to_AD7490(uint16_t command) {
 // dado pedido so chega na proxima transacao - por isso manda o comando,
 // depois manda um comando "em branco" so pra puxar a resposta.
 //
-// A troca "channel = 3 - channel" pros 4 primeiros canais e herdada do
-// projeto antigo (bia-senna-code-2026) - provavelmente compensa a ordem
-// fisica de fiacao dos primeiros 4 sensores na barra. Como a barra de
-// sensores frontais e a mesma do robo antigo, mantive igual, mas isso
-// PRECISA ser conferido na bancada com o hardware novo (comparar leitura
-// de cada canal com qual sensor fisico esta sendo tocado).
+// A troca "channel = 3 - channel" pros 4 primeiros canais era herdada do
+// projeto antigo (bia-senna-code-2026) - provavelmente compensava a ordem
+// fisica de fiacao dos primeiros 4 sensores na barra antiga. DESATIVADA
+// (decisao do usuario, 03/08/2026) pra testar a leitura em ordem direta
+// na barra nova de 16 sensores - reativar so se o teste de bancada (TF)
+// mostrar os 4 primeiros canais trocados.
 uint16_t read_AD7490_channel(uint8_t channel) {
-    if (channel < 4) channel = 3 - channel;
+    // if (channel < 4) channel = 3 - channel;
     uint16_t command = generate_AD7490_command(channel);
 
     write_to_AD7490(command);
@@ -72,11 +72,10 @@ void AD7490_init() {
     reset_AD7490();
 }
 
-// Validacao de bancada: le e imprime os primeiros 15 canais do AD7490
-// (o robo usa 9, mas ler mais ajuda a confirmar que o chip inteiro
-// responde). Serve pra checar a fiacao do SPI antes de confiar na leitura.
+// Validacao de bancada: le e imprime os 16 canais do AD7490 (o robo usa
+// todos). Serve pra checar a fiacao do SPI antes de confiar na leitura.
 void validar_AD7490() {
-    for (uint8_t channel = 0; channel < 15; channel++) {
+    for (uint8_t channel = 0; channel < 16; channel++) {
         uint16_t reading = read_AD7490_channel(channel);
         Serial.printf("[validar_AD7490] canal %d: %d\n", channel, reading);
     }

@@ -5,7 +5,7 @@
 // So grava a calibracao dos sensores frontais - sem sensores laterais
 // pra salvar, e sem o esquema de "2 estados" (TEST/COMPETITION) do
 // projeto antigo, simplificado pra 1 bloco so (PLANEJAMENTO.md secao 9).
-#define EEPROM_SIZE 64 // bem mais que o necessario (~38 bytes), margem de sobra
+#define EEPROM_SIZE 128 // bem mais que o necessario (~66 bytes com 16 sensores), margem de sobra
 
 // "Assinatura" gravada junto com os dados - se nao bater na leitura,
 // consideramos que a EEPROM esta "virgem" (nunca foi salva calibracao
