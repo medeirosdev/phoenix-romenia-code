@@ -56,9 +56,15 @@ static User_Command parse_command(const String &command) {
 // (ex.: "KP1.75") ou so resetam (PR), por isso sao tratados aqui, ANTES
 // de parse_command() virar um User_Command - nao mudam de estado, so
 // gravam o valor em RAM pra o PROXIMO ST usar (controllers.h/fan.h).
-// Aceitos em qualquer estado (so gravam numero, nao mexem em motor/
-// turbina na hora). Manda uma confirmacao de volta por Bluetooth, que ja
-// aparece no log do app sem precisar de tela nova pra isso.
+//
+// SO chamados em CALIBRACAO/SAIR (igual handle_diagnostic_command(), ver
+// read_user_input_with_params() abaixo) - NAO em RACE_STATE. Motivo:
+// manda confirmacao por Bluetooth, e send_bluetooth_message() tem um
+// delay(10) bloqueante - aceitavel fora da corrida, mas um comando KP/MV
+// chegando no meio de uma tentativa travaria o loop principal por 10ms
+// bem em cima do PID (sampling_rate_ms=2, ver controllers.h). Como o
+// valor so aplica no PROXIMO ST de qualquer jeito, nao tem motivo real
+// pra aceitar durante a corrida.
 static bool handle_param_command(const String &command) {
     if (command == "PR") {
         reset_pid_overrides();
@@ -100,21 +106,35 @@ static bool handle_param_command(const String &command) {
     return false;
 }
 
-static User_Command read_user_input() {
+static String read_raw_command() {
     String bluetooth_command = read_bluetooth_message();
-    if (bluetooth_command != "") {
-        if (handle_param_command(bluetooth_command)) return COMMAND_NONE;
-        return parse_command(bluetooth_command);
-    }
+    if (bluetooth_command != "") return bluetooth_command;
 
     if (Serial.available()) {
         String line = Serial.readStringUntil('\n');
         line.trim();
-        if (handle_param_command(line)) return COMMAND_NONE;
-        return parse_command(line);
+        return line;
     }
 
-    return COMMAND_NONE;
+    return "";
+}
+
+// Usado em RACE_STATE - nao tenta interpretar comando de parametro (ver
+// handle_param_command() acima pro motivo). Uma string tipo "KP1.5" so
+// cai no default de parse_command() (COMMAND_NONE) e e ignorada, mesmo
+// comportamento de antes desses comandos existirem.
+static User_Command read_user_input() {
+    String raw = read_raw_command();
+    if (raw == "") return COMMAND_NONE;
+    return parse_command(raw);
+}
+
+// Usado em CALIBRACAO/SAIR - tenta comando de parametro primeiro.
+static User_Command read_user_input_with_params() {
+    String raw = read_raw_command();
+    if (raw == "") return COMMAND_NONE;
+    if (handle_param_command(raw)) return COMMAND_NONE;
+    return parse_command(raw);
 }
 
 // Comandos de diagnostico (TM/TL/TF/TN/TB, PLANEJAMENTO.md secao 8) -
@@ -167,7 +187,7 @@ void Robot::run() {
 // abortar no meio) ou de ja iniciar a corrida com o que estiver
 // carregado (default de fabrica ou calibracao anterior).
 void Robot::calibration_state() {
-    User_Command command = read_user_input();
+    User_Command command = read_user_input_with_params();
     if (handle_diagnostic_command(command)) return;
 
     switch (command) {
@@ -242,7 +262,7 @@ void Robot::stopped_state() {
         announced = true;
     }
 
-    User_Command command = read_user_input();
+    User_Command command = read_user_input_with_params();
     if (handle_diagnostic_command(command)) return;
 
     if (command == COMMAND_START_CALIBRATION) {
