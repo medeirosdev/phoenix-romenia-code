@@ -51,11 +51,12 @@ static User_Command parse_command(const String &command) {
     return COMMAND_NONE;
 }
 
-// Comandos de PARAMETRO (KP/KI/KD/MV/FV/PR, PLANEJAMENTO.md secao 8) -
+// Comandos de PARAMETRO (KP/KI/KD/MV/FV/PR/PS, PLANEJAMENTO.md secao 8) -
 // diferente dos comandos fixos acima, esses carregam um valor junto
-// (ex.: "KP1.75") ou so resetam (PR), por isso sao tratados aqui, ANTES
-// de parse_command() virar um User_Command - nao mudam de estado, so
-// gravam o valor em RAM pra o PROXIMO ST usar (controllers.h/fan.h).
+// (ex.: "KP1.75") ou so consultam/resetam (PS/PR), por isso sao tratados
+// aqui, ANTES de parse_command() virar um User_Command - nao mudam de
+// estado, so gravam o valor em RAM pra o PROXIMO ST usar
+// (controllers.h/fan.h).
 //
 // SO chamados em CALIBRACAO/SAIR (igual handle_diagnostic_command(), ver
 // read_user_input_with_params() abaixo) - NAO em RACE_STATE. Motivo:
@@ -71,6 +72,19 @@ static bool handle_param_command(const String &command) {
         reset_race_fan_voltage();
         Serial.println("[state_machine] Parametros de teste resetados pro padrao do codigo.");
         send_bluetooth_message("PR ok - parametros resetados");
+        return true;
+    }
+    if (command == "PS") {
+        // Consulta os valores REAIS em uso agora (default do codigo, ou
+        // sobrescrito por KP/KD/MV/FV) - util pra quem conectar depois de
+        // outra pessoa ja ter mudado algo, ou depois de um reboot do
+        // ESP32 (que perde os overrides, ja que nao sao salvos em EEPROM).
+        String status = "KP=" + String(get_pid_kp(), 3)
+                       + " KD=" + String(get_pid_kd(), 3)
+                       + " MV=" + String(get_motor_base_voltage(), 2) + "V"
+                       + " FV=" + String(get_race_fan_voltage(), 2) + "V";
+        Serial.println("[state_machine] " + status);
+        send_bluetooth_message(status);
         return true;
     }
     if (command.startsWith("KP")) {

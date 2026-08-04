@@ -84,13 +84,15 @@ de 2 letras:
 | `MV<v>` | Sobrescreve a tensão base do motor (V) pro próximo `ST` |
 | `FV<v>` | Define a tensão da turbina durante a corrida (V, 0 = desligada) |
 | `PR` | Reseta `KP`/`KI`/`KD`/`MV`/`FV` pro padrão do código |
+| `PS` | Responde com os valores atuais de `KP`/`KD`/`MV`/`FV` (não inclui `KI`) |
 
 Os comandos de teste (`TM`, `TL`, `TF`, `TN`, `TB`) e os de ajuste
-(`KP`–`FV`, `PR`) só são aceitos fora do estado de corrida (a confirmação
-que os comandos de ajuste mandam de volta usa um `delay()` bloqueante,
-que travaria o loop do PID se aceito no meio de uma tentativa). Os
-comandos de ajuste só gravam o valor em memória, aplicado no próximo
-`ST`; se nenhum for enviado, o robô usa os valores fixos do código
+(`KP`–`FV`, `PR`, `PS`) só são aceitos fora do estado de corrida (a
+confirmação que os comandos de ajuste mandam de volta usa um `delay()`
+bloqueante, que travaria o loop do PID se aceito no meio de uma
+tentativa). Os comandos de ajuste só gravam o valor em memória, aplicado
+no próximo `ST`; se nenhum for enviado, o robô usa os valores fixos do
+código
 (mesmo comportamento de sempre). Nada é salvo em EEPROM — some se o
 ESP32 desligar.
 

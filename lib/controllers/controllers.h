@@ -54,4 +54,13 @@ void set_pid_kd(float value);
 void set_motor_base_voltage(float value);
 void reset_pid_overrides();
 
+// Le o valor ATUAL (default do codigo, ou sobrescrito por KP/KD/MV) -
+// usado pelo comando PS (state_machine.cpp), pra quem conectar depois
+// (ou o app, apos um reboot do ESP32) saber o que esta valendo de
+// verdade sem precisar adivinhar. Sem getter de kI de proposito - ver
+// nota acima, esse termo nao e exposto fora do codigo.
+float get_pid_kp();
+float get_pid_kd();
+float get_motor_base_voltage();
+
 #endif /* __CONTROLLERS_H__ */

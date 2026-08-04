@@ -26,6 +26,10 @@ void reset_pid_overrides() {
     override_motor_voltage = LINE_PID_BASE_VOLTAGE;
 }
 
+float get_pid_kp() { return override_kp; }
+float get_pid_kd() { return override_kd; }
+float get_motor_base_voltage() { return override_motor_voltage; }
+
 void LinePIDController::init() {
     setpoint = LINE_PID_SETPOINT;
     kP = override_kp;
