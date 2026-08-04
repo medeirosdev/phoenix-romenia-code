@@ -31,7 +31,7 @@
 // placa - precisam ser recalibrados na bancada com um multimetro antes
 // de confiar na leitura de tensao (ver validar_bateria()).
 #define BATTERY_SAMPLE_READINGS     4       // quantidade de leituras por amostra (reduz ruido)
-#define BATTERY_VOLTAGE_PARAMETER   16.80   // TODO: recalibrar - tensao medida no multimetro
+#define BATTERY_VOLTAGE_PARAMETER   12.4   // TODO: recalibrar - tensao medida no multimetro
 #define BATTERY_ADC_PARAMETER       4095    // TODO: recalibrar - leitura do ADC correspondente
 
 // Abaixo disso, consideramos que nao tem bateria de verdade conectada (pino
@@ -71,6 +71,11 @@ void battery_init();
 void battery_monitoring();
 Battery_Status get_battery_status();
 float get_battery_voltage();
+// Ultima leitura CRUA do ADC (0-4095), antes de aplicar BATTERY_VOLTAGE_PARAMETER/
+// BATTERY_ADC_PARAMETER - usado por telemetria de outros modulos (ex.: fan.cpp,
+// validar_fan()) pra ajudar a diagnosticar comportamento estranho olhando a
+// leitura de bateria no exato momento do teste.
+uint16_t get_battery_raw_adc();
 bool battery_failsafe_triggered();
 void validar_bateria();
 

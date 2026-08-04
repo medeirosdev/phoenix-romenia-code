@@ -1,9 +1,14 @@
 #include "battery.h"
 #include "pinout.h"
+#include "bluetooth.h"
 
 // Valor inicial otimista (bateria "alta" pro numero de celulas configurado),
 // so ate a primeira leitura real acontecer.
 static float voltage = BATTERY_CELL_COUNT * VOLTS_PER_CELL_HIGH;
+static uint16_t last_raw_adc_reading = 0; // guardado so pra validar_bateria() poder
+                                           // imprimir junto com a tensao calculada -
+                                           // usado pra calibrar BATTERY_VOLTAGE_PARAMETER/
+                                           // BATTERY_ADC_PARAMETER com multimetro.
 static Battery_Status battery_status = BATTERY_HIGH;
 
 static unsigned long battery_low_since = 0; // 0 = nao esta em bateria fraca no momento
@@ -25,6 +30,7 @@ static uint16_t read_battery_adc(uint8_t number_of_readings) {
 // calibracao (proporcao linear - ver comentario no battery.h).
 static void read_battery_voltage() {
     uint16_t adc_reading = read_battery_adc(BATTERY_SAMPLE_READINGS);
+    last_raw_adc_reading = adc_reading;
     voltage = ((float)adc_reading * BATTERY_VOLTAGE_PARAMETER) / BATTERY_ADC_PARAMETER;
 }
 
@@ -73,6 +79,10 @@ float get_battery_voltage() {
     return voltage;
 }
 
+uint16_t get_battery_raw_adc() {
+    return last_raw_adc_reading;
+}
+
 bool battery_failsafe_triggered() {
     return battery_low_since != 0 && (millis() - battery_low_since) >= FAILSAFE_TIMEOUT;
 }
@@ -86,11 +96,14 @@ void validar_bateria() {
 
     while (millis() - start_time < 10000) {
         battery_monitoring();
-        Serial.printf(
-            "[validar_bateria] %.2f V | status: %s\n",
-            get_battery_voltage(),
-            status_names[get_battery_status()]
-        );
+
+        String line = "ADC bruto: " + String(last_raw_adc_reading)
+                     + " | " + String(get_battery_voltage(), 2) + " V (calculado)"
+                     + " | status: " + status_names[get_battery_status()];
+
+        Serial.println("[validar_bateria] " + line);
+        send_bluetooth_message(line);
+
         delay(500);
     }
 }
