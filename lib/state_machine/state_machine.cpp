@@ -51,13 +51,66 @@ static User_Command parse_command(const String &command) {
     return COMMAND_NONE;
 }
 
+// Comandos de PARAMETRO (KP/KI/KD/MV/FV/PR, PLANEJAMENTO.md secao 8) -
+// diferente dos comandos fixos acima, esses carregam um valor junto
+// (ex.: "KP1.75") ou so resetam (PR), por isso sao tratados aqui, ANTES
+// de parse_command() virar um User_Command - nao mudam de estado, so
+// gravam o valor em RAM pra o PROXIMO ST usar (controllers.h/fan.h).
+// Aceitos em qualquer estado (so gravam numero, nao mexem em motor/
+// turbina na hora). Manda uma confirmacao de volta por Bluetooth, que ja
+// aparece no log do app sem precisar de tela nova pra isso.
+static bool handle_param_command(const String &command) {
+    if (command == "PR") {
+        reset_pid_overrides();
+        reset_race_fan_voltage();
+        Serial.println("[state_machine] Parametros de teste resetados pro padrao do codigo.");
+        send_bluetooth_message("PR ok - parametros resetados");
+        return true;
+    }
+    if (command.startsWith("KP")) {
+        float value = command.substring(2).toFloat();
+        set_pid_kp(value);
+        send_bluetooth_message("KP=" + String(value, 3) + " (aplica no proximo ST)");
+        return true;
+    }
+    if (command.startsWith("KI")) {
+        float value = command.substring(2).toFloat();
+        set_pid_ki(value);
+        send_bluetooth_message("KI=" + String(value, 3) + " (aplica no proximo ST)");
+        return true;
+    }
+    if (command.startsWith("KD")) {
+        float value = command.substring(2).toFloat();
+        set_pid_kd(value);
+        send_bluetooth_message("KD=" + String(value, 3) + " (aplica no proximo ST)");
+        return true;
+    }
+    if (command.startsWith("MV")) {
+        float value = command.substring(2).toFloat();
+        set_motor_base_voltage(value);
+        send_bluetooth_message("MV=" + String(value, 2) + "V (aplica no proximo ST)");
+        return true;
+    }
+    if (command.startsWith("FV")) {
+        float value = command.substring(2).toFloat();
+        set_race_fan_voltage(value);
+        send_bluetooth_message("FV=" + String(value, 2) + "V (aplica no proximo ST)");
+        return true;
+    }
+    return false;
+}
+
 static User_Command read_user_input() {
     String bluetooth_command = read_bluetooth_message();
-    if (bluetooth_command != "") return parse_command(bluetooth_command);
+    if (bluetooth_command != "") {
+        if (handle_param_command(bluetooth_command)) return COMMAND_NONE;
+        return parse_command(bluetooth_command);
+    }
 
     if (Serial.available()) {
         String line = Serial.readStringUntil('\n');
         line.trim();
+        if (handle_param_command(line)) return COMMAND_NONE;
         return parse_command(line);
     }
 
@@ -128,6 +181,10 @@ void Robot::calibration_state() {
         case COMMAND_START_RACE:
             Serial.println("[state_machine] Iniciando corrida.");
             controllers_init();
+            // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem
+            // o comportamento de sempre: turbina desligada durante a
+            // corrida, ate o time decidir testar isso via app.
+            set_fan_voltage(get_race_fan_voltage());
             line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
             set_state(RACE_STATE);
             break;

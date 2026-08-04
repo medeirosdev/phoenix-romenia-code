@@ -78,9 +78,18 @@ de 2 letras:
 | `TF` | Teste dos sensores frontais |
 | `TN` | Teste da turbina |
 | `TB` | Teste da bateria |
+| `KP<v>` | Sobrescreve o ganho `kP` do PID pro próximo `ST` (ex.: `KP1.75`) |
+| `KI<v>` | Sobrescreve o ganho `kI` do PID pro próximo `ST` |
+| `KD<v>` | Sobrescreve o ganho `kD` do PID pro próximo `ST` |
+| `MV<v>` | Sobrescreve a tensão base do motor (V) pro próximo `ST` |
+| `FV<v>` | Define a tensão da turbina durante a corrida (V, 0 = desligada) |
+| `PR` | Reseta `KP`/`KI`/`KD`/`MV`/`FV` pro padrão do código |
 
 Os comandos de teste (`TM`, `TL`, `TF`, `TN`, `TB`) só são aceitos fora do
-estado de corrida.
+estado de corrida. Os comandos de ajuste (`KP`–`FV`, `PR`) são aceitos em
+qualquer estado — só gravam o valor em memória, aplicado no próximo `ST`;
+se nenhum for enviado, o robô usa os valores fixos do código (mesmo
+comportamento de sempre). Nada é salvo em EEPROM — some se o ESP32 desligar.
 
 ## Configuração antes de gravar
 

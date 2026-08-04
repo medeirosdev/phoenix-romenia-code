@@ -33,6 +33,14 @@ void set_fan_voltage(float voltage_to_fan) {
     analogWrite(FAN_MOTOR_PIN, pwm_to_fan);
 }
 
+// Tensao configurada pra turbina rodar durante a corrida (comando FV) -
+// ver RACE_FAN_VOLTAGE_DEFAULT em fan.h.
+static float race_fan_voltage = RACE_FAN_VOLTAGE_DEFAULT;
+
+void set_race_fan_voltage(float voltage) { race_fan_voltage = voltage; }
+float get_race_fan_voltage() { return race_fan_voltage; }
+void reset_race_fan_voltage() { race_fan_voltage = RACE_FAN_VOLTAGE_DEFAULT; }
+
 // Escreve o duty cycle direto no pino, SEM passar pela conta de tensao/
 // bateria de set_fan_voltage() - decisao do Ricardo, 03/08/2026: enquanto
 // BATTERY_VOLTAGE_PARAMETER/BATTERY_ADC_PARAMETER (battery.h) nao

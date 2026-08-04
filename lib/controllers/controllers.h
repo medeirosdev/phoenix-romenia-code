@@ -41,4 +41,17 @@ extern LinePIDController line_pid;
 void controllers_init();
 void validar_controllers();
 
+// Sobrescrevem, em RAM, os ganhos do PID e a tensao base do motor pro
+// PROXIMO ST (controllers_init() le esses valores, nao mais direto os
+// #define acima) - pensado pra testar ajuste sem recompilar/regravar.
+// Comandos correspondentes (KP/KI/KD/MV) em state_machine.cpp. Nao grava
+// em EEPROM de proposito: sao valores de teste de bancada, somem se o
+// ESP32 desligar - use PR (reset_pid_overrides) pra voltar ao padrao do
+// codigo sem precisar disso.
+void set_pid_kp(float value);
+void set_pid_ki(float value);
+void set_pid_kd(float value);
+void set_motor_base_voltage(float value);
+void reset_pid_overrides();
+
 #endif /* __CONTROLLERS_H__ */

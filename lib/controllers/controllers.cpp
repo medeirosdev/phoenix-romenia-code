@@ -4,13 +4,35 @@
 
 LinePIDController line_pid;
 
+// Valores em RAM que LinePIDController::init() realmente le - comecam
+// iguais aos #define (controllers.h), e so mudam se um comando KP/KI/KD/MV
+// chegar por Bluetooth/Serial (state_machine.cpp - handle_param_command()).
+// Ficam valendo em toda tentativa (todo ST chama init() de novo) ate PR ou
+// o ESP32 desligar - ver comentario em controllers.h.
+static float override_kp = LINE_PID_KP;
+static float override_ki = LINE_PID_KI;
+static float override_kd = LINE_PID_KD;
+static float override_motor_voltage = LINE_PID_BASE_VOLTAGE;
+
+void set_pid_kp(float value) { override_kp = value; }
+void set_pid_ki(float value) { override_ki = value; }
+void set_pid_kd(float value) { override_kd = value; }
+void set_motor_base_voltage(float value) { override_motor_voltage = value; }
+
+void reset_pid_overrides() {
+    override_kp = LINE_PID_KP;
+    override_ki = LINE_PID_KI;
+    override_kd = LINE_PID_KD;
+    override_motor_voltage = LINE_PID_BASE_VOLTAGE;
+}
+
 void LinePIDController::init() {
     setpoint = LINE_PID_SETPOINT;
-    kP = LINE_PID_KP;
-    kI = LINE_PID_KI;
-    kD = LINE_PID_KD;
+    kP = override_kp;
+    kI = override_ki;
+    kD = override_kd;
     sampling_rate_ms = LINE_PID_SAMPLING_RATE_MS;
-    motor_base_value = LINE_PID_BASE_VOLTAGE;
+    motor_base_value = override_motor_voltage;
     current_error = 0;
     last_error = 0;
     accumulated_error = 0;
