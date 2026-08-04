@@ -1,6 +1,7 @@
 #include "motors.h"
 #include "pinout.h"
 #include "battery.h"
+#include "bluetooth.h"
 
 // =====================================================================
 // Driver dos motores: BTN9960LV (Infineon) - confirmado por Ricardo,
@@ -100,31 +101,55 @@ void brake_motors(bool active_brake) {
     }
 }
 
+// Espera 'ms', mas sai mais cedo se chegar QUALQUER comando por Bluetooth
+// ou Serial nesse meio tempo - usado so aqui em validar_motores(), pra dar
+// um jeito de abortar o teste sem esperar o delay fixo terminar (motor
+// girando merece um "parar ja"). Devolve true se foi interrompido.
+static bool interruptible_delay(unsigned long ms) {
+    unsigned long start = millis();
+    while (millis() - start < ms) {
+        if (read_bluetooth_message() != "") return true;
+        if (Serial.available()) {
+            Serial.readStringUntil('\n');
+            return true;
+        }
+        delay(10);
+    }
+    return false;
+}
+
+static void abort_motor_test() {
+    brake_motors(true);
+    Serial.println("[validar_motores] ABORTADO - comando recebido, motores freados.");
+}
+
 // Validacao de bancada: gira cada motor pra frente, pra tras, e para.
 // IMPORTANTE: na primeira vez que testar um motor novo, deixar a roda
-// LEVANTADA DO CHAO, pra nao sair correndo por engano.
+// LEVANTADA DO CHAO, pra nao sair correndo por engano. Envie QUALQUER
+// comando (Bluetooth ou Serial) a qualquer momento pra abortar - freia os
+// motores na hora e cancela o resto do teste.
 void validar_motores() {
-    Serial.println("[validar_motores] Motor ESQUERDO sentido horario");
+    Serial.println("[validar_motores] Motor ESQUERDO sentido horario (envie qualquer comando pra abortar)");
     set_motor_voltage(LEFT_MOTOR, 3.0);
-    delay(1500);
+    if (interruptible_delay(1500)) return abort_motor_test();
     set_motor_voltage(LEFT_MOTOR, 0);
-    delay(500);
+    if (interruptible_delay(500)) return abort_motor_test();
 
     Serial.println("[validar_motores] Motor ESQUERDO sentido anti-horario");
     set_motor_voltage(LEFT_MOTOR, -3.0);
-    delay(1500);
+    if (interruptible_delay(1500)) return abort_motor_test();
     set_motor_voltage(LEFT_MOTOR, 0);
-    delay(1000);
+    if (interruptible_delay(1000)) return abort_motor_test();
 
     Serial.println("[validar_motores] Motor DIREITO sentido horario");
     set_motor_voltage(RIGHT_MOTOR, 3.0);
-    delay(1500);
+    if (interruptible_delay(1500)) return abort_motor_test();
     set_motor_voltage(RIGHT_MOTOR, 0);
-    delay(500);
+    if (interruptible_delay(500)) return abort_motor_test();
 
     Serial.println("[validar_motores] Motor DIREITO sentido anti-horario");
     set_motor_voltage(RIGHT_MOTOR, -3.0);
-    delay(1500);
+    if (interruptible_delay(1500)) return abort_motor_test();
     set_motor_voltage(RIGHT_MOTOR, 0);
 
     Serial.println("[validar_motores] fim");
