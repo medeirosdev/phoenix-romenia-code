@@ -205,12 +205,29 @@ void Robot::calibration_state() {
     if (handle_diagnostic_command(command)) return;
 
     switch (command) {
-        case COMMAND_START_CALIBRATION:
-            Serial.println("[state_machine] Calibrando sensores frontais...");
+        case COMMAND_START_CALIBRATION: {
+            // LED + Bluetooth: antes so tinha Serial.println() aqui - sem
+            // indicador nenhum no robo fisico (nenhum LED aceso) e sem
+            // nada chegando no app durante os 5s de calibracao, so no
+            // Serial Monitor com cabo (achado de teste de bancada,
+            // 21/09/2026). AMARELO = calibrando, VERDE por 1s = salvo.
+            const char *start_msg = "[state_machine] Calibrando sensores frontais...";
+            Serial.println(start_msg);
+            send_bluetooth_message(start_msg);
+            set_all_leds_color(YELLOW);
+
             calibrate_line_sensors();
             save_line_sensors_calibration(); // salva automaticamente - sem os 3 modos do projeto antigo
-            Serial.println("[state_machine] Calibracao concluida e salva. Envie ST pra iniciar a corrida.");
+
+            set_all_leds_color(GREEN);
+            delay(1000);
+            clear_leds();
+
+            const char *done_msg = "[state_machine] Calibracao concluida e salva. Envie ST pra iniciar a corrida.";
+            Serial.println(done_msg);
+            send_bluetooth_message(done_msg);
             break;
+        }
 
         case COMMAND_START_RACE:
             Serial.println("[state_machine] Iniciando corrida.");
