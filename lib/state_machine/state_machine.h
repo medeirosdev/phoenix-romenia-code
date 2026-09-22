@@ -28,6 +28,9 @@ class Robot {
         void race_state();
         void stopped_state();
         void set_state(Robot_State new_state);
+        // Compartilhado por CALIBRACAO e PARADO (ambos aceitam ST direto,
+        // sem exigir recalibrar) - ver comando ST em state_machine.cpp.
+        void start_race();
 };
 
 extern Robot robot;

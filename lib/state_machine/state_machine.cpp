@@ -230,14 +230,7 @@ void Robot::calibration_state() {
         }
 
         case COMMAND_START_RACE:
-            Serial.println("[state_machine] Iniciando corrida.");
-            controllers_init();
-            // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem
-            // o comportamento de sempre: turbina desligada durante a
-            // corrida, ate o time decidir testar isso via app.
-            set_fan_voltage(get_race_fan_voltage());
-            line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
-            set_state(RACE_STATE);
+            start_race();
             break;
 
         case COMMAND_EXIT:
@@ -280,16 +273,33 @@ void Robot::race_state() {
     }
 }
 
+// Inicia a corrida com a calibracao ATUAL (a que ja estiver carregada em
+// RAM), sem exigir uma recalibracao de 5s antes - chamado tanto de
+// CALIBRACAO quanto de PARADO (ver stopped_state() logo abaixo: sem isso,
+// ST sozinho nao fazia nada depois de um SP, so KO - bug de UX achado em
+// teste de bancada, 21/09/2026).
+void Robot::start_race() {
+    Serial.println("[state_machine] Iniciando corrida.");
+    controllers_init();
+    // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem o
+    // comportamento de sempre: turbina desligada durante a corrida, ate o
+    // time decidir testar isso via app.
+    set_fan_voltage(get_race_fan_voltage());
+    line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
+    set_state(RACE_STATE);
+}
+
 // Estado "parado": freia e desliga tudo. Aceita KO pra voltar direto pra
 // CALIBRACAO (nova tentativa, sem precisar resetar a placa - decisao do
-// usuario, PLANEJAMENTO.md secao 12) ou fica parado esperando esse
-// comando indefinidamente.
+// usuario, PLANEJAMENTO.md secao 12) ou ST pra retomar a corrida direto
+// com a calibracao que ja estava carregada, sem passar por CALIBRACAO -
+// ou fica parado esperando um desses dois comandos indefinidamente.
 void Robot::stopped_state() {
     static bool announced = false;
     if (!announced) {
         brake_motors(true);
         set_fan_voltage(0);
-        Serial.println("[state_machine] Parado. Envie KO pra uma nova tentativa.");
+        Serial.println("[state_machine] Parado. Envie KO pra recalibrar ou ST pra retomar a corrida.");
         announced = true;
     }
 
@@ -300,5 +310,8 @@ void Robot::stopped_state() {
         Serial.println("[state_machine] Nova tentativa - voltando pra calibracao.");
         announced = false;
         set_state(CALIBRATION_STATE);
+    } else if (command == COMMAND_START_RACE) {
+        announced = false;
+        start_race();
     }
 }
