@@ -31,7 +31,7 @@ static uint16_t read_battery_adc(uint8_t number_of_readings) {
 static void read_battery_voltage() {
     uint16_t adc_reading = read_battery_adc(BATTERY_SAMPLE_READINGS);
     last_raw_adc_reading = adc_reading;
-    voltage = ((float)adc_reading * BATTERY_VOLTAGE_PARAMETER) / BATTERY_ADC_PARAMETER;
+    voltage = ((float)adc_reading * BATTERY_VOLTAGE_PARAMETER * 11.7/6.37) / BATTERY_ADC_PARAMETER;
 }
 
 static void read_battery_status() {
