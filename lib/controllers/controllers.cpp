@@ -1,6 +1,7 @@
 #include "controllers.h"
 #include "line_sensors.h"
 #include "motors.h"
+#include "config.h"
 
 LinePIDController line_pid;
 
@@ -41,6 +42,7 @@ void LinePIDController::init() {
     last_error = 0;
     accumulated_error = 0;
     last_sample_time_us = 0;
+    race_start_ms = millis();
 }
 
 // Le a posicao do robo em relacao a linha e aplica a correcao nos 2
@@ -71,8 +73,14 @@ void LinePIDController::run() {
 
     last_error = current_error;
 
-    set_motor_voltage(RIGHT_MOTOR, motor_base_value + correction);
-    set_motor_voltage(LEFT_MOTOR, motor_base_value - correction);
+    double base = motor_base_value;
+    if (PASSO_MOTOR_LIGADO) {
+        double elapsed_s = (millis() - race_start_ms) / 1000.0;
+        base = min(motor_base_value, TAMANHO_PASSO * elapsed_s);
+    }
+
+    set_motor_voltage(RIGHT_MOTOR, base + correction);
+    set_motor_voltage(LEFT_MOTOR, base - correction);
 }
 
 void controllers_init() {

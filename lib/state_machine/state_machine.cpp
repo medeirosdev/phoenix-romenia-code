@@ -251,6 +251,34 @@ void Robot::calibration_state() {
 // comando de STOP, ou sozinho se o failsafe de "saiu da linha" disparar
 // (config.h - FAILSAFE_LINHA_PERDIDA).
 void Robot::race_state() {
+    if (PASSO_TURBINA_LIGADO) {
+        float target = get_race_fan_voltage();
+        float elapsed_s = (millis() - race_start_ms) / 1000.0f;
+        float fan_now = min(target, (float)TAMANHO_PASSO_TURBINA * elapsed_s);
+        set_fan_voltage(fan_now);
+
+        if (!motors_released) {
+            if (fan_now >= target - MARGEM_TURBINA_PARTIDA) {
+                // Acontece 1 vez por tentativa, antes do PID comecar - o
+                // delay(10) do send_bluetooth_message() nao atrapalha aqui.
+                const char *msg = "[state_machine] Turbina quase no alvo - liberando motores.";
+                Serial.println(msg);
+                send_bluetooth_message(msg);
+                controllers_init(); // zera o PID e a rampa dos motores a partir de agora
+                line_lost_since = 0;
+                motors_released = true;
+            } else {
+                // Ainda subindo a turbina: robo parado, sem PID nem failsafe
+                // de linha perdida - mas STOP continua valendo.
+                if (read_user_input() == COMMAND_STOP) {
+                    Serial.println("[state_machine] STOP recebido.");
+                    set_state(STOPPED_STATE);
+                }
+                return;
+            }
+        }
+    }
+
     line_pid.run();
 
     if (FAILSAFE_LINHA_PERDIDA) {
@@ -280,12 +308,21 @@ void Robot::race_state() {
 // teste de bancada, 21/09/2026).
 void Robot::start_race() {
     Serial.println("[state_machine] Iniciando corrida.");
-    controllers_init();
-    // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem o
-    // comportamento de sempre: turbina desligada durante a corrida, ate o
-    // time decidir testar isso via app.
-    set_fan_voltage(get_race_fan_voltage());
+    race_start_ms = millis();
     line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
+
+    if (PASSO_TURBINA_LIGADO) {
+        // Turbina sobe em race_state(); motores so liberam perto do alvo.
+        brake_motors(true);
+        set_fan_voltage(0);
+        motors_released = false;
+    } else {
+        // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem o
+        // comportamento de sempre: turbina desligada durante a corrida.
+        controllers_init();
+        set_fan_voltage(get_race_fan_voltage());
+        motors_released = true;
+    }
     set_state(RACE_STATE);
 }
 

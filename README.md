@@ -108,6 +108,12 @@ sessão, bancada ou competição, e exigem regravar o ESP32 quando mudarem:
   de bancada da equipe).
 - `FAILSAFE_LINHA_PERDIDA`: liga ou desliga a parada automática quando o
   robô perde a linha por tempo demais.
+- `PASSO_MOTOR_LIGADO` / `TAMANHO_PASSO`: rampa de partida dos motores - a
+  tensão base sobe de 0 até o valor configurado, `TAMANHO_PASSO` V/s.
+- `PASSO_TURBINA_LIGADO` / `TAMANHO_PASSO_TURBINA` / `MARGEM_TURBINA_PARTIDA`:
+  no `ST`, o robô fica parado enquanto a turbina sobe até o valor de `FV`
+  e só sai quando ela chega a `MARGEM_TURBINA_PARTIDA` V do alvo. Com `FV`
+  em 0 (padrão), sai na hora.
 
 ## Compilando e gravando
 

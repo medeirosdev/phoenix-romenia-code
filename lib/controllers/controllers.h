@@ -34,6 +34,7 @@ class LinePIDController {
         double last_error = 0;
         double accumulated_error = 0;
         unsigned long last_sample_time_us = 0;
+        unsigned long race_start_ms = 0; // referencia da rampa PASSO_MOTOR_LIGADO (config.h)
 };
 
 extern LinePIDController line_pid;

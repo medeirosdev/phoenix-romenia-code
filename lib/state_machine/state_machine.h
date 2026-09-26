@@ -24,6 +24,11 @@ class Robot {
         // "saiu da linha" (config.h) contar o tempo corrido.
         unsigned long line_lost_since = 0;
 
+        // Rampa da turbina (config.h - PASSO_TURBINA_LIGADO): millis() do ST,
+        // e se os motores ja foram liberados nessa tentativa.
+        unsigned long race_start_ms = 0;
+        bool motors_released = false;
+
         void calibration_state();
         void race_state();
         void stopped_state();
