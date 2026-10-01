@@ -2,8 +2,18 @@
 #include "line_sensors.h"
 #include "motors.h"
 #include "config.h"
+#include "AD7490.h"
 
 LinePIDController line_pid;
+
+// Medicao de tempo da tentativa atual (zerada em init()) - ver
+// pid_timing_report().
+static uint32_t timing_samples = 0;
+static uint32_t read_time_sum_us = 0;
+static uint32_t read_time_max_us = 0;
+static uint32_t period_samples = 0;
+static uint32_t period_sum_us = 0;
+static uint32_t period_max_us = 0;
 
 // Valores em RAM que LinePIDController::init() realmente le - comecam
 // iguais aos #define (controllers.h), e so mudam se um comando KP/KI/KD/MV
@@ -43,6 +53,12 @@ void LinePIDController::init() {
     accumulated_error = 0;
     last_sample_time_us = 0;
     race_start_ms = millis();
+    has_previous_sample = false;
+    filtered_derivative = 0;
+
+    timing_samples = read_time_sum_us = read_time_max_us = 0;
+    period_samples = period_sum_us = period_max_us = 0;
+    reset_AD7490_channel_errors();
 }
 
 // Le a posicao do robo em relacao a linha e aplica a correcao nos 2
@@ -60,15 +76,35 @@ void LinePIDController::init() {
 // o problema mais provavel e essa suposicao, nao esse calculo aqui.
 void LinePIDController::run() {
     unsigned long now = micros();
-    if (now - last_sample_time_us < (unsigned long)(sampling_rate_ms * 1000)) return;
+    if (has_previous_sample && now - last_sample_time_us < (unsigned long)(sampling_rate_ms * 1000)) return;
+
+    // Tempo REAL desde a amostra anterior (nao o sampling_rate_ms fixo): se
+    // o loop atrasar, o D continua certo.
+    unsigned long period_us = now - last_sample_time_us;
     last_sample_time_us = now;
 
     current_error = setpoint - read_robot_position();
-    double delta_error = current_error - last_error;
+    unsigned long read_time_us = micros() - now;
+
+    timing_samples++;
+    read_time_sum_us += read_time_us;
+    read_time_max_us = max(read_time_max_us, (uint32_t)read_time_us);
+
+    if (has_previous_sample) {
+        period_samples++;
+        period_sum_us += period_us;
+        period_max_us = max(period_max_us, (uint32_t)period_us);
+
+        // Mesma unidade de antes (erro por segundo), entao o KD continua
+        // valendo na mesma escala - so com tempo real e filtrado.
+        double raw_derivative = (current_error - last_error) / (period_us / 1e6);
+        filtered_derivative += LINE_PID_D_FILTER_ALPHA * (raw_derivative - filtered_derivative);
+    }
+    has_previous_sample = true;
     accumulated_error += current_error;
 
     double correction = (kP * current_error)
-                       + (kD * (delta_error * 1000.0) / sampling_rate_ms)
+                       + (kD * filtered_derivative)
                        + (kI * accumulated_error);
 
     last_error = current_error;
@@ -85,6 +121,25 @@ void LinePIDController::run() {
 
 void controllers_init() {
     line_pid.init();
+}
+
+String pid_timing_report() {
+    if (timing_samples == 0) return "";
+
+    String report = "PID: leitura media " + String(read_time_sum_us / timing_samples)
+                  + "us max " + String(read_time_max_us) + "us";
+    if (period_samples > 0) {
+        report += " | periodo medio " + String(period_sum_us / period_samples)
+                + "us max " + String(period_max_us) + "us";
+    }
+    report += " | amostras " + String(timing_samples)
+            + " | erros canal ADC " + String(get_AD7490_channel_errors());
+
+    // Consome o relatorio: uma parada sem PID rodando depois (ex.: SP
+    // durante a subida da turbina) nao repete os numeros da tentativa velha.
+    timing_samples = 0;
+    period_samples = 0;
+    return report;
 }
 
 // Teste isolado do PID, fora da maquina de estados (que ja existe em

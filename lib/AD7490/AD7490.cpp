@@ -47,6 +47,38 @@ uint16_t read_AD7490_channel(uint8_t channel) {
     return response;
 }
 
+static uint32_t channel_errors = 0;
+
+// O AD7490 devolve, em cada transacao, o resultado do canal pedido na
+// transacao ANTERIOR. Entao cada transacao pede o canal i e recebe o canal
+// i-1: count canais custam count+1 transacoes (antes eram 2 por canal), e o
+// SPI e aberto uma vez so por varredura. A resposta da primeira transacao e
+// de uma varredura anterior e e descartada.
+void read_AD7490_all(uint16_t *out, uint8_t count) {
+    SPI.beginTransaction(SPISettings(SPI_FREQUENCY, SPI_BIT_ORDER, SPI_MODE));
+    for (uint8_t i = 0; i <= count; i++) {
+        uint16_t command = (i < count) ? generate_AD7490_command(i) : 0;
+
+        digitalWrite(FRONTAL_SENSORS_CS_PIN, LOW);
+        uint16_t response = SPI.transfer16(command);
+        digitalWrite(FRONTAL_SENSORS_CS_PIN, HIGH);
+
+        if (i == 0) continue;
+        uint8_t expected_channel = i - 1;
+        if ((response >> 12) != expected_channel) channel_errors++;
+        out[expected_channel] = response & 0x0FFF;
+    }
+    SPI.endTransaction();
+}
+
+uint32_t get_AD7490_channel_errors() {
+    return channel_errors;
+}
+
+void reset_AD7490_channel_errors() {
+    channel_errors = 0;
+}
+
 static void reset_AD7490() {
     // Ver datasheet do AD7490, pagina 21.
     write_to_AD7490(UINT16_MAX);

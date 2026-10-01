@@ -14,12 +14,18 @@ static void reset_sensors_calibration() {
 }
 
 static void read_frontal_sensors_adc() {
-    for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
-        uint32_t sum_of_readings = 0;
-        for (uint8_t i = 0; i < NUMBER_OF_SAMPLES_PER_READING; i++) {
-            sum_of_readings += read_AD7490_channel(sensor);
+    uint32_t sum_of_readings[NUMBER_OF_FRONTAL_SENSORS] = {0};
+    uint16_t sample[NUMBER_OF_FRONTAL_SENSORS];
+
+    for (uint8_t i = 0; i < NUMBER_OF_SAMPLES_PER_READING; i++) {
+        read_AD7490_all(sample, NUMBER_OF_FRONTAL_SENSORS);
+        for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
+            sum_of_readings[sensor] += sample[sensor];
         }
-        FS.adc_reading[sensor] = sum_of_readings / NUMBER_OF_SAMPLES_PER_READING;
+    }
+
+    for (uint8_t sensor = 0; sensor < NUMBER_OF_FRONTAL_SENSORS; sensor++) {
+        FS.adc_reading[sensor] = sum_of_readings[sensor] / NUMBER_OF_SAMPLES_PER_READING;
     }
 }
 

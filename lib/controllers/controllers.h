@@ -13,7 +13,11 @@
                                           // verdade, adicionar um clamp em accumulated_error antes.
                                           // Inofensivo hoje porque kI=0 zera o termo de qualquer jeito.
 #define LINE_PID_KD                0.015
-#define LINE_PID_SAMPLING_RATE_MS  2.0
+#define LINE_PID_SAMPLING_RATE_MS  1.0  // inteiro (sampling_rate_ms e uint16_t): abaixo de 1 vira 0
+
+// Filtro passa-baixa do termo D (media movel exponencial), 0 < alfa <= 1.
+// Menor = derivada mais suave, porem com mais atraso; 1 = sem filtro.
+#define LINE_PID_D_FILTER_ALPHA    0.3
 
 // Tensao base dos motores durante esse teste - baixa de proposito, pra
 // ser seguro na primeira vez que o robo roda sozinho numa pista.
@@ -35,12 +39,19 @@ class LinePIDController {
         double accumulated_error = 0;
         unsigned long last_sample_time_us = 0;
         unsigned long race_start_ms = 0; // referencia da rampa PASSO_MOTOR_LIGADO (config.h)
+        bool has_previous_sample = false;
+        double filtered_derivative = 0;
 };
 
 extern LinePIDController line_pid;
 
 void controllers_init();
 void validar_controllers();
+
+// Resumo da medicao de tempo da ultima tentativa (leitura dos sensores,
+// periodo real do PID e erros de canal do AD7490). String vazia se o PID
+// nao rodou desde o ultimo relatorio - cada chamada consome os numeros.
+String pid_timing_report();
 
 // Sobrescrevem, em RAM, os ganhos do PID e a tensao base do motor pro
 // PROXIMO ST (controllers_init() le esses valores, nao mais direto os

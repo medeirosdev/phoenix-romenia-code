@@ -61,7 +61,9 @@ O robô tem 3 estados:
 - **Parado**: motores e turbina desligados. Aceita `KO` para voltar direto à
   calibração (nova tentativa, sem precisar reiniciar a placa) ou `ST` para
   retomar a corrida direto com a calibração que já estava carregada, sem
-  precisar recalibrar.
+  precisar recalibrar. Ao parar depois de uma corrida, manda pelo app o
+  tempo médio/máximo da leitura dos sensores, o período real do PID e os
+  erros de canal do ADC (devem ficar em 0).
 
 ## Comandos
 

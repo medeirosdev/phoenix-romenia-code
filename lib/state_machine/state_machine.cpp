@@ -63,7 +63,7 @@ static User_Command parse_command(const String &command) {
 // manda confirmacao por Bluetooth, e send_bluetooth_message() tem um
 // delay(10) bloqueante - aceitavel fora da corrida, mas um comando KP/MV
 // chegando no meio de uma tentativa travaria o loop principal por 10ms
-// bem em cima do PID (sampling_rate_ms=2, ver controllers.h). Como o
+// bem em cima do PID (que roda a cada 1ms, ver controllers.h). Como o
 // valor so aplica no PROXIMO ST de qualquer jeito, nao tem motivo real
 // pra aceitar durante a corrida.
 static bool handle_param_command(const String &command) {
@@ -337,6 +337,14 @@ void Robot::stopped_state() {
         brake_motors(true);
         set_fan_voltage(0);
         Serial.println("[state_machine] Parado. Envie KO pra recalibrar ou ST pra retomar a corrida.");
+
+        // Fora da corrida, entao o delay(10) do envio por Bluetooth nao
+        // atrapalha o PID.
+        String timing = pid_timing_report();
+        if (timing != "") {
+            Serial.println("[state_machine] " + timing);
+            send_bluetooth_message(timing);
+        }
         announced = true;
     }
 
