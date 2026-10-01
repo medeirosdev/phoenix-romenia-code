@@ -57,7 +57,8 @@ O robô tem 3 estados:
 - **Calibração**: estado inicial. Espera o comando de calibrar os sensores
   ou de já iniciar a corrida com a calibração salva anteriormente.
 - **Corrida**: segue a linha com o PID até receber o comando de parar ou
-  até o failsafe de linha perdida disparar.
+  até o failsafe de linha perdida disparar. LEDs roxos enquanto espera a
+  turbina subir, azuis enquanto corre; apagam ao parar.
 - **Parado**: motores e turbina desligados. Aceita `KO` para voltar direto à
   calibração (nova tentativa, sem precisar reiniciar a placa) ou `ST` para
   retomar a corrida direto com a calibração que já estava carregada, sem

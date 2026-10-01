@@ -267,6 +267,7 @@ void Robot::race_state() {
                 controllers_init(); // zera o PID e a rampa dos motores a partir de agora
                 line_lost_since = 0;
                 motors_released = true;
+                set_all_leds_color(BLUE);
             } else {
                 // Ainda subindo a turbina: robo parado, sem PID nem failsafe
                 // de linha perdida - mas STOP continua valendo.
@@ -311,17 +312,22 @@ void Robot::start_race() {
     race_start_ms = millis();
     line_lost_since = 0; // zera o cronometro do failsafe pra essa tentativa
 
+    // LEDs da corrida: ROXO = parado esperando a turbina subir, AZUL =
+    // correndo. Trocados so nas transicoes, nunca a cada volta do loop -
+    // FastLED.show() trava as interrupcoes enquanto escreve nos LEDs.
     if (PASSO_TURBINA_LIGADO) {
         // Turbina sobe em race_state(); motores so liberam perto do alvo.
         brake_motors(true);
         set_fan_voltage(0);
         motors_released = false;
+        set_all_leds_color(PURPLE);
     } else {
         // Liga a turbina no valor configurado (FV) - 0 (padrao) mantem o
         // comportamento de sempre: turbina desligada durante a corrida.
         controllers_init();
         set_fan_voltage(get_race_fan_voltage());
         motors_released = true;
+        set_all_leds_color(BLUE);
     }
     set_state(RACE_STATE);
 }
@@ -336,6 +342,7 @@ void Robot::stopped_state() {
     if (!announced) {
         brake_motors(true);
         set_fan_voltage(0);
+        clear_leds();
         Serial.println("[state_machine] Parado. Envie KO pra recalibrar ou ST pra retomar a corrida.");
 
         // Fora da corrida, entao o delay(10) do envio por Bluetooth nao
